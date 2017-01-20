@@ -10,7 +10,6 @@ import ConfigParser
 import profiles
 import tools
 import climatology
-import anomalies
 
 
 def get_args():
@@ -52,15 +51,16 @@ def main():
         prof.write_grid()
         gridfiles.append(prof.fout)
         clim.accumulate_profiles(prof)
-    
+     
     # Calculate monthly climatology
     clim.calc_clim()
     clim.write_clim()
-    
+     
     # Calculate anomalies
     if config.getboolean('anomalies', 'calc_anomalies'):
         for dt, gridfile in zip(dts, gridfiles):
             tools.calc_anom(gridfile, dt, clim)
+             
             
     # Finished
     print '\nFinished!\n'

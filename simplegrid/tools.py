@@ -10,6 +10,8 @@ import shutil
 from netCDF4 import Dataset
 
 
+class ShapeError(Exception):
+    pass
 
 def get_dt_files(config, minyr, maxyr):
     """ 
@@ -52,3 +54,6 @@ def calc_anom(gridfile, dt, clim):
     # Close files
     gridnc.close()
     anomnc.close()
+    
+
+    
