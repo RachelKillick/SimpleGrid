@@ -4,7 +4,7 @@ SimpleGrid is a package for efficient aggregation of ocean profile data onto a r
 
 ## Using SimpleGrid
 #### Required python libraries
-SynthPro was developed using Python 2.7 and requires the installation of the following python libraries and their associated dependencies: `numpy`, `netCDF4`, `ConfigParser`, `argparse`, `sys`, `shutil`, `os`, `time`, and `scipy`.
+SimpleGrid was developed using Python 2.7 and requires the installation of the following python libraries and their associated dependencies: `numpy`, `netCDF4`, `ConfigParser`, `argparse`, `sys`, `shutil`, `os`, `time`, and `scipy`.
 
 #### Cloning the git repository
 To retrieve a copy of the SimpleGrid source code and create a working directory, run the following on the command line: 
