@@ -32,7 +32,11 @@ def get_dt_files(config, minyr, maxyr):
                 dt = datetime.datetime(yr, mon, 1)
                 files.append(f)
                 dts.append(dt)
-                    
+            elif os.path.isfile(f.replace('.f.','.p.')):
+                dt = datetime.datetime(yr, mon, 1)
+                files.append(f.replace('.f.','.p.'))
+                dts.append(dt)
+                
     return dts, files
 
 
