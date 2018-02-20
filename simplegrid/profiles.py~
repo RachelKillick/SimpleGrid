@@ -106,6 +106,7 @@ class Profiles(object):
         self.z_1d = self.reshape_1d(self.z)
         self.qc_1d = self.reshape_1d(self.qc)
         self.posqc_1d = self.reshape_1d(self.posqc)
+        self.juld_1d = self.reshape_1d(self.juld)
         
         # Apply QC
         qcind = (self.qc_1d == True) & (self.posqc_1d == True)

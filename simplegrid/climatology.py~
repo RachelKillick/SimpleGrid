@@ -22,6 +22,7 @@ class GridClim(object):
         self.xvar = profiles.xvar
         self.yvar = profiles.yvar
         self.zvar = profiles.zvar
+        self.juldvar = profiles.juldvar
         self.datavar = profiles.datavar
         self.xgrid = profiles.xgrid
         self.ygrid = profiles.ygrid
