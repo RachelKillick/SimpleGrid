@@ -22,7 +22,6 @@ class GridClim(object):
         self.xvar = profiles.xvar
         self.yvar = profiles.yvar
         self.zvar = profiles.zvar
-        self.juldvar = profiles.juldvar
         self.datavar = profiles.datavar
         self.xgrid = profiles.xgrid
         self.ygrid = profiles.ygrid
@@ -76,7 +75,7 @@ class GridClim(object):
         xdim = ncout.createDimension(self.xvar, self.nx)
         ydim = ncout.createDimension(self.yvar, self.ny)
         zdim = ncout.createDimension(self.zvar, self.nz) 
-        mdim = ncout.createDimension('month', 12) 
+        mdim = ncout.createDimension('month', 12)
 
         # Create variables
         varx = ncout.createVariable(self.xvar, 'float64', (self.xvar,))
