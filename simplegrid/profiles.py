@@ -3,6 +3,7 @@
 from netCDF4 import Dataset, date2num
 import numpy as np
 import scipy.stats
+import binned_stat_dd1
 import time
 
 class ShapeError(Exception):
@@ -124,22 +125,22 @@ class Profiles(object):
         bins = [self.zbounds, self.ybounds, self.xbounds]
         
         # Grid data
-        grid_count, binedges, binno = scipy.stats.binned_statistic_dd(
+        grid_count, binedges, binno = binned_stat_dd1.binned_statistic_dd(
             points, self.data_1d, statistic='count', bins=bins)
-        grid_sum, binedges, binno = scipy.stats.binned_statistic_dd(
+        grid_sum, binedges, binno = binned_stat_dd1.binned_statistic_dd(
             points, self.data_1d, statistic='sum', bins=bins)
-#        grid_max, binedges, binno = scipy.stats.binned_statistic_dd(
-#            points, self.data_1d, statistic = gmax, bins=bins)
-#        grid_min, binedges, binno = scipy.stats.binned_statistic_dd(
-#            points, self.data_1d, statistic = gmin, bins=bins) 
+        grid_max, binedges, binno = binned_stat_dd1.binned_statistic_dd(
+            points, self.data_1d, statistic = 'max', bins=bins)
+        grid_min, binedges, binno = binned_stat_dd1.binned_statistic_dd(
+            points, self.data_1d, statistic = 'min', bins=bins) 
         
         grid_mean = grid_sum / grid_count
         grid_mean = np.ma.MaskedArray(grid_mean, mask = (grid_count == 0))
         self.grid_mean = grid_mean
         self.grid_count = grid_count
         self.grid_sum = grid_sum
-#        self.grid_max = grid_max
-#        self.grid_min = grid_min
+        self.grid_max = grid_max
+        self.grid_min = grid_min
 
     def create_savename(self):
         """ Generate file name based on file name and grid specification """
@@ -193,8 +194,8 @@ class Profiles(object):
         varmean = ncout.createVariable(self.datavar, 'float32', ('time',self.zvar,self.yvar,self.xvar))
         varsum = ncout.createVariable('sum', 'float32', ('time',self.zvar,self.yvar,self.xvar))
         varcount = ncout.createVariable('count', 'float32', ('time',self.zvar,self.yvar,self.xvar))
-#        varmax = ncout.createVariable('gmax', 'float32', ('time', self.zvar, self.yvar, self.xvar))
-#        varmin = ncout.createVariable('gmin', 'float32', ('time', self.zvar, self.yvar, self.xvar))
+        varmax = ncout.createVariable('gmax', 'float32', ('time', self.zvar, self.yvar, self.xvar))
+        varmin = ncout.createVariable('gmin', 'float32', ('time', self.zvar, self.yvar, self.xvar))
         vartime = ncout.createVariable('time', 'float64', ('time',))
         vartime.units = 'hours since 0001-01-01 00:00:00'
         vartime.calendar = 'gregorian'
@@ -206,8 +207,8 @@ class Profiles(object):
         varmean[:] = self.grid_mean[np.newaxis]
         varsum[:] = self.grid_sum[np.newaxis]
         varcount[:] = self.grid_count[np.newaxis]
-#        varmax[:] = self.grid_max[np.newaxis]
-#        varmin[:] = self.grid_min[np.newaxis]
+        varmax[:] = self.grid_max[np.newaxis]
+        varmin[:] = self.grid_min[np.newaxis]
         vartime[:] = date2num(self.dt, units=vartime.units, calendar=vartime.calendar)
         
         # Add  global attributes

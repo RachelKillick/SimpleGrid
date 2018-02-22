@@ -10,6 +10,7 @@ import ConfigParser
 import profiles
 import tools
 import climatology
+import binned_stat_dd
 
 
 def get_args():

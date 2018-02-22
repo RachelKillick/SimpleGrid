@@ -1,0 +1,11 @@
+#!/bin/bash -l                       
+#SBATCH --qos=normal                 
+#SBATCH --mem=10G                    
+#SBATCH --ntasks=2                  
+#SBATCH --output=/scratch/rkillick/Spice_output_2000s_minmax.txt   
+#SBATCH --error=/scratch/rkillick/Spice_error_2000s_minmax.txt
+#SBATCH --time=360
+#SBATCH --mail-user=rachel.killick@metoffice.gov.uk
+#SBATCH --mail-type=ALL                  
+
+python2.7 run_simplegrid.py '/scratch/rkillick/BAMS/g10_profiles/namelist2000s.ini'

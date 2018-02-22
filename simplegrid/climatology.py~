@@ -76,32 +76,55 @@ class GridClim(object):
         ydim = ncout.createDimension(self.yvar, self.ny)
         zdim = ncout.createDimension(self.zvar, self.nz) 
         mdim = ncout.createDimension('month', 12)
+        bndsDim = ncout.createDimension('bnds', 2)
 
         # Create variables
         varx = ncout.createVariable(self.xvar, 'float64', (self.xvar,))
-        varxmin = ncout.createVariable('%s_minbounds' % (self.xvar), 'float32', (self.xvar,))
-        varxmax = ncout.createVariable('%s_maxbounds' % (self.xvar), 'float32', (self.xvar,))
+        #varxmin = ncout.createVariable('%s_minbounds' % (self.xvar), 'float32', (self.xvar,))
+        #varxmax = ncout.createVariable('%s_maxbounds' % (self.xvar), 'float32', (self.xvar,))
         vary = ncout.createVariable(self.yvar, 'float64', (self.yvar,))
-        varymin = ncout.createVariable('%s_minbounds' % (self.yvar), 'float32', (self.yvar,))
-        varymax = ncout.createVariable('%s_maxbounds' % (self.yvar), 'float32', (self.yvar,))
+        #varymin = ncout.createVariable('%s_minbounds' % (self.yvar), 'float32', (self.yvar,))
+        #varymax = ncout.createVariable('%s_maxbounds' % (self.yvar), 'float32', (self.yvar,))
         varz = ncout.createVariable(self.zvar, 'float64', (self.zvar,))
-        varzmin = ncout.createVariable('%s_minbounds' % (self.zvar), 'float32', (self.zvar,))
-        varzmax = ncout.createVariable('%s_maxbounds' % (self.zvar), 'float32', (self.zvar,))
+        #varzmin = ncout.createVariable('%s_minbounds' % (self.zvar), 'float32', (self.zvar,))
+        #varzmax = ncout.createVariable('%s_maxbounds' % (self.zvar), 'float32', (self.zvar,))
         varmean = ncout.createVariable(self.datavar, 'float32', ('month',self.zvar,self.yvar,self.xvar))
         varsum = ncout.createVariable('sum', 'float32', ('month',self.zvar,self.yvar,self.xvar))
         varcount = ncout.createVariable('count', 'float32', ('month',self.zvar,self.yvar,self.xvar))
         varmon = ncout.createVariable('month', 'int32', ('month',))
+        
+        varx.standard_name = 'longitude'
+        varx.units = 'degrees'
+        ncout.variables['LONGITUDE'].bounds = 'lon_bnds'
+        lonBndsVar = ncout.createVariable('lon_bnds', 'float64', (self.xvar, 'bnds'))
+        xboundaries = np.concatenate([self.xminbounds, np.reshape(self.xmaxbounds[-1],(1,1))[0]])
+        lonBndsVar[:,:] = np.array([xboundaries[:-1], xboundaries[1:]]).T
+
+        vary.standard_name = 'latitude'
+        vary.units = 'degrees'
+        ncout.variables['LATITUDE'].bounds = 'lat_bnds'
+        latBndsVar = ncout.createVariable('lat_bnds', 'float64', (self.yvar, 'bnds'))
+        yboundaries = np.concatenate([self.yminbounds, np.reshape(self.ymaxbounds[-1],(1,1))[0]])
+        latBndsVar[:,:] = np.array([yboundaries[:-1], yboundaries[1:]]).T
+        
+        varz.standard_name = 'depth'
+        varz.units = 'metres'
+        ncout.variables['DEPH_CORRECTED'].bounds = 'depth_bnds'
+        depthBndsVar = ncout.createVariable('depth_bnds', 'float64', (self.zvar, 'bnds'))
+        zboundaries = np.concatenate([self.zminbounds, np.reshape(self.zmaxbounds[-1],(1,1))[0]])
+        depthBndsVar[:,:] = np.array([zboundaries[:-1], zboundaries[1:]]).T
+
 
         # Write to variables
         varx[:] = self.xgrid
-        varxmin[:] = self.xminbounds
-        varxmax[:] = self.xmaxbounds
+        #varxmin[:] = self.xminbounds
+        #varxmax[:] = self.xmaxbounds
         vary[:] = self.ygrid
-        varymin[:] = self.yminbounds
-        varymax[:] = self.ymaxbounds
+        #varymin[:] = self.yminbounds
+        #varymax[:] = self.ymaxbounds
         varz[:] = self.zgrid
-        varzmin[:] = self.zminbounds
-        varzmax[:] = self.zmaxbounds
+        #varzmin[:] = self.zminbounds
+        #varzmax[:] = self.zmaxbounds
         varmean[:] = self.grid_mean
         varsum[:] = self.grid_sum
         varcount[:] = self.grid_count

@@ -3,6 +3,7 @@
 from netCDF4 import Dataset, date2num
 import numpy as np
 import scipy.stats
+import binned_stat_dd1
 import time
 
 class ShapeError(Exception):
@@ -124,14 +125,14 @@ class Profiles(object):
         bins = [self.zbounds, self.ybounds, self.xbounds]
         
         # Grid data
-        grid_count, binedges, binno = scipy.stats.binned_statistic_dd(
+        grid_count, binedges, binno = binned_stat_dd1.binned_statistic_dd(
             points, self.data_1d, statistic='count', bins=bins)
-        grid_sum, binedges, binno = scipy.stats.binned_statistic_dd(
+        grid_sum, binedges, binno = binned_stat_dd1.binned_statistic_dd(
             points, self.data_1d, statistic='sum', bins=bins)
-        grid_max, binedges, binno = scipy.stats.binned_statistic_dd(
-            points, self.data_1d, statistic = gmax, bins=bins)
-        grid_min, binedges, binno = scipy.stats.binned_statistic_dd(
-            points, self.data_1d, statistic = gmin, bins=bins) 
+        grid_max, binedges, binno = binned_stat_dd1.binned_statistic_dd(
+            points, self.data_1d, statistic = 'max', bins=bins)
+        grid_min, binedges, binno = binned_stat_dd1.binned_statistic_dd(
+            points, self.data_1d, statistic = 'min', bins=bins) 
         
         grid_mean = grid_sum / grid_count
         grid_mean = np.ma.MaskedArray(grid_mean, mask = (grid_count == 0))

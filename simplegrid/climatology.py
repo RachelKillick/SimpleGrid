@@ -80,14 +80,8 @@ class GridClim(object):
 
         # Create variables
         varx = ncout.createVariable(self.xvar, 'float64', (self.xvar,))
-        #varxmin = ncout.createVariable('%s_minbounds' % (self.xvar), 'float32', (self.xvar,))
-        #varxmax = ncout.createVariable('%s_maxbounds' % (self.xvar), 'float32', (self.xvar,))
         vary = ncout.createVariable(self.yvar, 'float64', (self.yvar,))
-        #varymin = ncout.createVariable('%s_minbounds' % (self.yvar), 'float32', (self.yvar,))
-        #varymax = ncout.createVariable('%s_maxbounds' % (self.yvar), 'float32', (self.yvar,))
         varz = ncout.createVariable(self.zvar, 'float64', (self.zvar,))
-        #varzmin = ncout.createVariable('%s_minbounds' % (self.zvar), 'float32', (self.zvar,))
-        #varzmax = ncout.createVariable('%s_maxbounds' % (self.zvar), 'float32', (self.zvar,))
         varmean = ncout.createVariable(self.datavar, 'float32', ('month',self.zvar,self.yvar,self.xvar))
         varsum = ncout.createVariable('sum', 'float32', ('month',self.zvar,self.yvar,self.xvar))
         varcount = ncout.createVariable('count', 'float32', ('month',self.zvar,self.yvar,self.xvar))
@@ -117,14 +111,8 @@ class GridClim(object):
 
         # Write to variables
         varx[:] = self.xgrid
-        #varxmin[:] = self.xminbounds
-        #varxmax[:] = self.xmaxbounds
         vary[:] = self.ygrid
-        #varymin[:] = self.yminbounds
-        #varymax[:] = self.ymaxbounds
         varz[:] = self.zgrid
-        #varzmin[:] = self.zminbounds
-        #varzmax[:] = self.zmaxbounds
         varmean[:] = self.grid_mean
         varsum[:] = self.grid_sum
         varcount[:] = self.grid_count

@@ -1,0 +1,46 @@
+6c6
+<                                      ('statistic', 'bin_edges', 'binnumber'))
+---
+>                                      ('statistic', 'bin_edges','binnumber'))
+166,169c166,168
+<     sampBin = [
+<         np.digitize(sample[:, i], edges[i])
+<         for i in xrange(Ndim)
+<     ]
+---
+>     sampBin = {}
+>     for i in xrange(Ndim):
+>         sampBin[i] = np.digitize(sample[:, i], edges[i])
+184c183,188
+<     binnumbers = np.ravel_multi_index(sampBin, nbin)
+---
+>     ni = nbin.argsort()
+>     # `binnumbers` is which bin (in linearized `Ndim` space) each sample goes
+>     binnumbers = np.zeros(Dlen, int)
+>     for i in xrange(0, Ndim - 1):
+>         binnumbers += sampBin[ni[i]] * nbin[ni[i + 1:]].prod()
+>     binnumbers += sampBin[ni[-1]]
+231,232c235,238
+<         with np.errstate(invalid='ignore'), suppress_warnings() as sup:
+<             sup.filter(RuntimeWarning)
+---
+>         with warnings.catch_warnings():
+>             # Numpy generates a warnings for mean/std/... with empty list
+>             warnings.filterwarnings('ignore', category=RuntimeWarning)
+>             old = np.seterr(invalid='ignore')
+236a243
+>             np.seterr(**old)
+243c250,256
+<     result = result.reshape(np.append(Vdim, nbin))
+---
+>     result = result.reshape(np.append(Vdim, np.sort(nbin)))
+> 
+>     for i in xrange(nbin.size):
+>         j = ni.argsort()[i]
+>         # Accomodate the extra `Vdim` dimension-zero with `+1`
+>         result = result.swapaxes(i+1, j+1)
+>         ni[i], ni[j] = ni[j], ni[i]
+259c272
+< return BinnedStatisticddResult(result, edges, binnumbers)
+---
+>     return BinnedStatisticddResult(result, edges, binnumbers)
