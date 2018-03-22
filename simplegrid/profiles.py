@@ -4,6 +4,7 @@ from netCDF4 import Dataset, date2num
 import numpy as np
 import scipy.stats
 import binned_stat_dd1
+import inst_type
 import time
 
 class ShapeError(Exception):
@@ -18,9 +19,15 @@ class Profiles(object):
         self.config = config
         self.fname = fname
         self.dt = dt
+        self.OHCdep = config.get('profiles', 'OHCdep')
+        self.maxgap = config.get('profiles', 'maxgap')
         self.xvar = config.get('profiles', 'xvar')
         self.yvar = config.get('profiles', 'yvar')
         self.zvar = config.get('profiles', 'zvar')
+        self.pvar = config.get('profiles', 'pvar')
+        self.pnvar = config.get('profiles', 'pnvar')
+        self.irvar = config.get('profiles', 'irvar')
+        self.psvar = config.get('profiles', 'psvar')
         self.qcvar = config.get('profiles', 'qcvar')
         self.posqcvar = config.get('profiles', 'posqcvar')
         self.datavar = config.get('profiles', 'datavar')
@@ -30,9 +37,13 @@ class Profiles(object):
             self.load_x()
             self.load_y()
             self.load_z()
+            self.load_p()
+            self.load_pn()
+            self.load_ir()
+            self.load_ps()
             self.load_qc()
             self.load_posqc()
-            
+        
     def read_var(self, ncvar):
         """ Read data from specified variable """
         ncf = Dataset(self.fname)
@@ -54,11 +65,46 @@ class Profiles(object):
         """ Load z-coordinate data as <np.array> """
         self.z = self.read_var(self.zvar)
         self.test_shape(self.zvar, self.z.shape, 2)
-        
+
+    def load_p(self):
+        """ Load p-coordinate data as <np.array> """
+        self.p = self.read_var(self.pvar)
+        new_arr = []
+        for p in range(np.shape(self.p)[0]):
+            new_arr.append(p)
+        self.p = new_arr
+        self.p = np.array(self.p)
+        self.test_shape(self.pvar, self.p.shape, 1)
+
+    def load_pn(self):
+        """ Load project-name-coordinate data as <np.array> """
+        self.pn = self.read_var(self.pnvar)
+        new_arr = []
+        for p in range(np.shape(self.pn)[0]):
+            new_arr.append(''.join(self.pn[p]))
+        self.pn = new_arr
+        self.pn = np.array(self.pn)
+        self.test_shape(self.pnvar, self.pn.shape, 1)
+
+    def load_ir(self):
+        """ Load instrument-reference-coordinate data as <np.array> """
+        self.ir = self.read_var(self.irvar)
+        new_arr = []
+        for p in range(np.shape(self.ir)[0]):
+            new_arr.append(''.join(self.ir[p]))
+        self.ir = new_arr
+        self.ir = np.array(self.ir)
+        self.test_shape(self.irvar, self.ir.shape, 1)
+
     def load_data(self):
         """ Load profile data as <np.array> """
         self.data = self.read_var(self.datavar)
-        self.test_shape(self.datavar, self.data.shape, 2)    
+        self.test_shape(self.datavar, self.data.shape, 2)
+    
+    def load_ps(self):
+        """ Load salinity data as <np.array> """
+        self.ps = self.read_var(self.psvar)
+        self.test_shape(self.psvar, self.ps.shape, 2)    
         
     def load_qc(self):
         """ Load data quality control flags as <np.array> """
@@ -99,48 +145,110 @@ class Profiles(object):
     
     def grid_data(self, method='mean'):
         """ Grid data using specifications in config attribute """ 
+        
+#        # Try thinning to only deep profiles first
+#        posqcset = np.where(self.posqc != True)[0]
+#        deepset = np.unique(np.where(np.logical_and(np.logical_and(self.z.data >= 700,self.z.mask == False), self.qc != False))[0])
+#        combset = np.array(np.setdiff1d(deepset,posqcset)) # Profiles that are deep and aren't bad
+#        
+#        # Restrict to only profiles that are deeper than 700m:
+#        self.data = self.data[combset]
+#        self.x = self.x[combset]
+#        self.y = self.y[combset]
+#        self.p = self.p[combset]
+#        self.pn = self.pn[combset]
+#        self.ir = self.ir[combset]
+#        self.ps = self.ps[combset]
+#        self.z = self.z[combset]
+#        self.qc = self.qc[combset]
+#        self.posqc = self.posqc[combset]
+#        fv = self.z.fill_value
+#        year = int(self.fname[-9:-5])
+#        
+#        # Filter out low quality XBTs:
+#        rem = []
+#        for p in range(len(self.p)):
+#            xbt = inst_type.is_xbt(self.pn[p], self.ir[p], self.ps[p], fv, 
+#              self.z[p], fv)
+#            if xbt[0][0] > 0:
+#                # Remove any XBTs sourced from WOD where the fall rate equation
+#                # is unknown:
+#                if xbt[3] == 9:
+#                    rem.append(p)
+#                # Remove any GTSPP XBTs where the type is unknown and year is 
+#                # >= 1995. 
+#                # Or if type is unknown and it may not be a T4/T6/T7/DB because 
+#                # the depth it reaches is too deep. Some of these will have been
+#                # given the Hanawa correction and so be inaccurate - this 
+#                # happens in EN processing if probe code is zero:
+#                projectName = ''.join(self.pn[p])
+#                if projectName[0:5] == 'GTSPP':
+#                    if (xbt[4] == 0 or xbt[4] == 99 or xbt[4] == 999) and year >= 1995:
+#                        rem.append(p)
+#                    if (xbt[4] == 0 and xbt[1] > 900):
+#                        rem.append(p)
+#        
+#        # Get rid of the low quality XBTs:
+#        nolowxbt = np.array(np.setdiff1d(range(len(self.p)),rem))
+#        self.data = self.data[nolowxbt]
+#        self.x = self.x[nolowxbt]
+#        self.y = self.y[nolowxbt]
+#        self.p = self.p[nolowxbt]
+#        self.pn = self.pn[nolowxbt]
+#        self.ps = self.ps[nolowxbt]
+#        self.ir = self.ir[nolowxbt]
+#        self.z = self.z[nolowxbt]
+#        self.qc = self.qc[nolowxbt]
+#        self.posqc = self.posqc[nolowxbt]
 
         # Reshape
         self.data_1d = self.reshape_1d(self.data)
         self.x_1d = self.reshape_1d(self.x)
         self.y_1d = self.reshape_1d(self.y)
+        self.p_1d = self.reshape_1d(self.p)
         self.z_1d = self.reshape_1d(self.z)
         self.qc_1d = self.reshape_1d(self.qc)
         self.posqc_1d = self.reshape_1d(self.posqc)
         
-        # Apply QC
+        # Apply QC - Technically the self.posqc_1d step shouldn't be needed as 
+        # these profiles will have got filtered out with the earlier QC, but 
+        # it's good to leave it in there as then if I remove the depth 
+        # restriction step, this step will still catch badly positioned profiles:
         qcind = (self.qc_1d == True) & (self.posqc_1d == True)
         self.qc_1d = self.qc_1d[qcind]
         self.posqc_1d = self.posqc_1d[qcind]
-        self.data_1d = self.data_1d[qcind]
+        self.data_1d = self.data_1d[qcind] # Still seems to have 99999 values in
+        # it, and I can't see where they get filtered out, but they must get 
+        # filtered out somewhere or the mean values wouldn't be sensible.
         self.x_1d = self.x_1d[qcind]
         self.y_1d = self.y_1d[qcind]
+        self.p_1d = self.p_1d[qcind]
         self.z_1d = self.z_1d[qcind]
-
+        
         # Prepare data for gridding
         self.init_xgrid()
         self.init_ygrid()
         self.init_zgrid()
         points = np.vstack([self.z_1d, self.y_1d, self.x_1d]).transpose()
         bins = [self.zbounds, self.ybounds, self.xbounds]
-        
+       
         # Grid data
         grid_count, binedges, binno = binned_stat_dd1.binned_statistic_dd(
             points, self.data_1d, statistic='count', bins=bins)
         grid_sum, binedges, binno = binned_stat_dd1.binned_statistic_dd(
             points, self.data_1d, statistic='sum', bins=bins)
-        grid_max, binedges, binno = binned_stat_dd1.binned_statistic_dd(
-            points, self.data_1d, statistic = 'max', bins=bins)
-        grid_min, binedges, binno = binned_stat_dd1.binned_statistic_dd(
-            points, self.data_1d, statistic = 'min', bins=bins) 
+#        grid_max, binedges, binno = binned_stat_dd1.binned_statistic_dd(
+#            points, self.data_1d, statistic = 'max', bins=bins)
+#        grid_min, binedges, binno = binned_stat_dd1.binned_statistic_dd(
+#            points, self.data_1d, statistic = 'min', bins=bins) 
         
         grid_mean = grid_sum / grid_count
         grid_mean = np.ma.MaskedArray(grid_mean, mask = (grid_count == 0))
         self.grid_mean = grid_mean
         self.grid_count = grid_count
         self.grid_sum = grid_sum
-        self.grid_max = grid_max
-        self.grid_min = grid_min
+#        self.grid_max = grid_max
+#        self.grid_min = grid_min
 
     def create_savename(self):
         """ Generate file name based on file name and grid specification """
@@ -194,8 +302,8 @@ class Profiles(object):
         varmean = ncout.createVariable(self.datavar, 'float32', ('time',self.zvar,self.yvar,self.xvar))
         varsum = ncout.createVariable('sum', 'float32', ('time',self.zvar,self.yvar,self.xvar))
         varcount = ncout.createVariable('count', 'float32', ('time',self.zvar,self.yvar,self.xvar))
-        varmax = ncout.createVariable('gmax', 'float32', ('time', self.zvar, self.yvar, self.xvar))
-        varmin = ncout.createVariable('gmin', 'float32', ('time', self.zvar, self.yvar, self.xvar))
+#        varmax = ncout.createVariable('gmax', 'float32', ('time', self.zvar, self.yvar, self.xvar))
+#        varmin = ncout.createVariable('gmin', 'float32', ('time', self.zvar, self.yvar, self.xvar))
         vartime = ncout.createVariable('time', 'float64', ('time',))
         vartime.units = 'hours since 0001-01-01 00:00:00'
         vartime.calendar = 'gregorian'
@@ -207,8 +315,8 @@ class Profiles(object):
         varmean[:] = self.grid_mean[np.newaxis]
         varsum[:] = self.grid_sum[np.newaxis]
         varcount[:] = self.grid_count[np.newaxis]
-        varmax[:] = self.grid_max[np.newaxis]
-        varmin[:] = self.grid_min[np.newaxis]
+#        varmax[:] = self.grid_max[np.newaxis]
+#        varmin[:] = self.grid_min[np.newaxis]
         vartime[:] = date2num(self.dt, units=vartime.units, calendar=vartime.calendar)
         
         # Add  global attributes

@@ -1,10 +1,10 @@
 #!/bin/bash -l                       
-#SBATCH --qos=normal                 
+#SBATCH --qos=long                 
 #SBATCH --mem=10G                    
 #SBATCH --ntasks=2                  
 #SBATCH --output=/scratch/rkillick/Spice_output_2000s_minmax.txt   
 #SBATCH --error=/scratch/rkillick/Spice_error_2000s_minmax.txt
-#SBATCH --time=360
+#SBATCH --time=2880
 #SBATCH --mail-user=rachel.killick@metoffice.gov.uk
 #SBATCH --mail-type=ALL                  
 

@@ -6,11 +6,10 @@ Module containing main routines to execute SimpleGrid.
 
 import argparse
 import ConfigParser
-
+from inst_type import *
 import profiles
 import tools
 import climatology
-import binned_stat_dd
 
 
 def get_args():
