@@ -128,6 +128,8 @@ posqcvar = posqcvar[nolowxbt]
 pvar = np.array(range(len(pvar)))
 
 # Loop over these profiles and do vertical averages:
+all_mT = np.zeros(len(pvar))
+all_lT = np.zeros(len(pvar))
 for p in pvar:
     # 1. Select the profile of interest:
     x_p = xvar[p]
@@ -171,9 +173,24 @@ for p in pvar:
             mean_t1 = fv
             mean_t2 = fv
         else:
-            mean_t1 = sum(np.multiply(mt,dz))/OHCdep         
-                
-
+            mean_t1 = sum(np.multiply(mt,dz))/OHCdep
+        # Make sure there are no crazy mean values:
+        if (abs(mean_t1) > 100 and mean_t1 != fv):
+            raise ValueError, 'Extreme values found'
+        # Save the mean temperature at that depth and the temp at the target 
+        # depth:
+        all_mT[p] = mean_t1
+        all_lT[p] = tar_t1
+        # Now what I want to do (as a weighted average fix for the time being)
+        # is to make sure that this weighted mean gets used instead of the 
+        # simple mean - I think the simplest (VERY messy) way of doing this is
+        # to replace all the actual profile values with this mean:
+        if mean_t1 != fv:
+            datavar[p][np.where(zvar[p] <= OHCdep)] = mean_t1
+        else:
+            qcvar[p][np.where(zvar[p] <= OHCdep)] = False
+        # THINK OF A BETTER WAY OF DOING THIS - OVERWRITING ISN'T A GREAT IDEA!
+    
 # Make them all one-dimensional:
 datavar_1d = reshape_1d(datavar)
 xvar_1d = reshape_1d(xvar)

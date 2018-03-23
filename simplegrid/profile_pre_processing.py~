@@ -128,6 +128,8 @@ posqcvar = posqcvar[nolowxbt]
 pvar = np.array(range(len(pvar)))
 
 # Loop over these profiles and do vertical averages:
+all_mT = np.zeros(len(pvar))
+all_lT = np.zeros(len(pvar))
 for p in pvar:
     # 1. Select the profile of interest:
     x_p = xvar[p]
@@ -145,22 +147,48 @@ for p in pvar:
     LTi1 = np.where(z_p < OHCdep)
     GEi1 = np.where(z_p >= OHCdep)
     if (np.shape(LTi1)[1] != 0 and np.shape(GEi1)[1] != 0):
+        # Get the depth differences between layers and the mean temps across
+        # layers:
         nk = np.shape(LTi1)[1] + 1
+        dz = np.zeros(nk)
+        mt = np.zeros(nk)
+        dz[0] = z_p[0]
+        mt[0] = data_p[0]
+        for kk in (np.array(range(nk -1)) + 1):
+            dz[kk] = z_p[kk] - z_p[kk-1]
+            mt[kk] = 0.5 * (data_p[kk] + data_p[kk-1])
+        # Work out the temp at the target depth:
         if z_p[GEi1[0][0]] == OHCdep:
             print 'A sampled depth is equal to the desired level'
-            dz = np.zeros(nk)
-            mt = np.zeros(nk)
-            dz[0] = z_p[0]
-            mt[0] = data_p[0]
             tar_t1 = data_p[GEi1[0][0]]
-            for kk in range(nk -1):
-                dz[kk] = z_p[kk] - z_p[kk-1]
-                mt[kk] = data_p[kk] - data_p[kk-1]
-            test_gap = np.where(dz > maxgap)
-            if np.shape(test_gap)[1] != 0:
-                mean_t1 = fv
-            
-                
+        else:
+            deltaT = data_p[GEi1[0][0]] - data_p[GEi1[0][0] -1]
+            deltaZ = z_p[GEi1[0][0]] - z_p[GEi1[0][0] -1]
+            tar_t1 = (OHCdep - z_p[GEi1[0][0] -1])*(deltaT/deltaZ) + data_p[GEi1[0][0] -1]
+            dz[nk -1] = OHCdep - z_p[GEi1[0][0] -1]
+            mt[nk -1] = 0.5*(data_p[GEi1[0][0] -1] + tar_t1)
+        # Check if there are unacceptable gaps between layers:
+        test_gap = np.where(dz > maxgap)
+        if np.shape(test_gap)[1] != 0:
+            mean_t1 = fv
+            mean_t2 = fv
+        else:
+            mean_t1 = sum(np.multiply(mt,dz))/OHCdep
+        # Make sure there are no crazy mean values:
+        if (abs(mean_t1) > 100 and mean_t1 != fv):
+            raise ValueError, 'Extreme values found'
+        # Save the mean temperature at that depth and the temp at the target 
+        # depth:
+        all_mT[p] = mean_t1
+        all_lT[p] = tar_t1
+        # Now what I want to do (as a weighted average fix for the time being)
+        # is to make sure that this weighted mean gets used instead of the 
+        # simple mean - I think the simplest (VERY messy) way of doing this is
+        # to replace all the actual profile values with this mean:
+        if mean_t1 != fv:
+            datavar[p][np.where(zvar[p] <= OHCdep)] = mean_t1
+        else:
+            qcvar[p][np.where(zvar[p] <= OHCdep)] = False
 
 # Make them all one-dimensional:
 datavar_1d = reshape_1d(datavar)
