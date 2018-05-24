@@ -6,6 +6,7 @@ import scipy.stats
 import binned_stat_dd1
 import inst_type
 import time
+import warnings
 
 class ShapeError(Exception):
     pass
@@ -28,6 +29,7 @@ class Profiles(object):
         self.pnvar = config.get('profiles', 'pnvar')
         self.irvar = config.get('profiles', 'irvar')
         self.psvar = config.get('profiles', 'psvar')
+        self.psalqcvar = config.get('profiles', 'psalqcvar')
         self.qcvar = config.get('profiles', 'qcvar')
         self.posqcvar = config.get('profiles', 'posqcvar')
         self.datavar = config.get('profiles', 'datavar')
@@ -41,6 +43,7 @@ class Profiles(object):
             self.load_pn()
             self.load_ir()
             self.load_ps()
+            self.load_psalqc()
             self.load_qc()
             self.load_posqc()
         
@@ -79,6 +82,7 @@ class Profiles(object):
     def load_pn(self):
         """ Load project-name-coordinate data as <np.array> """
         self.pn = self.read_var(self.pnvar)
+        self.pn = self.pn.astype('unicode')
         new_arr = []
         for p in range(np.shape(self.pn)[0]):
             new_arr.append(''.join(self.pn[p]))
@@ -89,6 +93,7 @@ class Profiles(object):
     def load_ir(self):
         """ Load instrument-reference-coordinate data as <np.array> """
         self.ir = self.read_var(self.irvar)
+        self.ir = self.ir.astype('unicode')
         new_arr = []
         for p in range(np.shape(self.ir)[0]):
             new_arr.append(''.join(self.ir[p]))
@@ -105,17 +110,35 @@ class Profiles(object):
         """ Load salinity data as <np.array> """
         self.ps = self.read_var(self.psvar)
         self.test_shape(self.psvar, self.ps.shape, 2)    
-        
+    
+    def load_psalqc(self):
+        """ Load salinity QC data as boolean <np.array> """
+        rejectval = self.config.getint('profiles', 'qcreject')
+        #self.psalqc = self.read_var(self.psalqcvar) != rejectval
+        self.psalqc = self.read_var(self.psalqcvar)
+        self.psalqc[np.where(self.psalqc!='4')]= 1
+        self.psalqc[np.where(self.psalqc=='4')]= 0
+        self.psalqc = self.psalqc.astype(bool)
+        self.test_shape(self.psalqcvar, self.psalqc.shape, 2)
+    
     def load_qc(self):
         """ Load data quality control flags as <np.array> """
-        rejectval = self.config.get('profiles', 'qcreject')        
-        self.qc = self.read_var(self.qcvar) != rejectval
+        rejectval = self.config.getint('profiles', 'qcreject')        
+        #self.qc = self.read_var(self.qcvar) != rejectval
+        self.qc = self.read_var(self.qcvar)
+        self.qc[np.where(self.qc!='4')] = 1
+        self.qc[np.where(self.qc=='4')] = 0
+        self.qc = self.qc.astype(bool)
         self.test_shape(self.qcvar, self.qc.shape, 2)
         
     def load_posqc(self):
         """ Load position quality control flags as <np.array> """
-        rejectval = self.config.get('profiles', 'posqcreject')        
-        self.posqc = self.read_var(self.posqcvar) != rejectval
+        rejectval = self.config.getint('profiles', 'posqcreject')        
+        #self.posqc = self.read_var(self.posqcvar) != rejectval
+        self.posqc = self.read_var(self.posqcvar)
+        self.posqc[np.where(self.posqc != '4')] = 1
+        self.posqc[np.where(self.posqc == '4')] = 0
+        self.posqc = self.posqc.astype(bool)
         self.test_shape(self.posqcvar, self.posqc.shape, 1)          
 
     def test_shape(self, varname, varshape, ndim):
@@ -146,6 +169,22 @@ class Profiles(object):
     def grid_data(self, method='mean'):
         """ Grid data using specifications in config attribute """ 
         
+        # Add a few extra variables in that I print out each month as I can then
+        # compare these with the IDL output to see if there are discrepancies in
+        # the number of profiles being used:
+        rej_profiles = 0.
+        nWOD9 = 0.
+        nGTSPP0 = 0.
+        nGTSPP999 = 0.
+        index = np.where(self.qc == False)
+        print('No. of rejected temperature values', np.shape(index))
+        
+        # Make the salinity values missing where the salinity QC flag is bad:
+        fv = self.z.fill_value
+        self.psal[np.where(self.psalqc == False)] = fv
+        index = np.where(self.psalqc == False)
+        print('No. of rejected salinity values', np.shape(index))
+        
         # Try thinning to only deep profiles first
         posqcset = np.where(self.posqc != True)[0]
         deepset = np.unique(np.where(np.logical_and(np.logical_and(self.z.data >= 700,self.z.mask == False), self.qc != False))[0])
@@ -162,7 +201,6 @@ class Profiles(object):
         self.z = self.z[combset]
         self.qc = self.qc[combset]
         self.posqc = self.posqc[combset]
-        fv = self.z.fill_value
         year = int(self.fname[-9:-5])
         
         # Filter out low quality XBTs:
@@ -175,6 +213,7 @@ class Profiles(object):
                 # is unknown:
                 if xbt[3] == 9:
                     rem.append(p)
+                    nWOD9 += 1
                 # Remove any GTSPP XBTs where the type is unknown and year is 
                 # >= 1995. 
                 # Or if type is unknown and it may not be a T4/T6/T7/DB because 
@@ -185,6 +224,10 @@ class Profiles(object):
                 if projectName[0:5] == 'GTSPP':
                     if (xbt[4] == 0 or xbt[4] == 99 or xbt[4] == 999) and year >= 1995:
                         rem.append(p)
+                        if xbt[4] == 0:
+                            nGTSPP0 += 1
+                        else:
+                            nGTSPP999 += 1
                     if (xbt[4] == 0 and xbt[1] > 900):
                         rem.append(p)
         
@@ -216,12 +259,22 @@ class Profiles(object):
             qc_p = np.where(np.logical_and(self.qc[p] == True, self.z[p].mask == False))
             data_p = self.data[p][qc_p]
             z_p = self.z[p][qc_p].data
+            # 1a. Sanity check to make sure there are no missing data going into
+            # the averaging process:
+            tempanddeppres = np.where(np.logical_and(data_p != fv, z_p != fv))[0]
+            data_p = data_p[tempanddeppres]
+            z_p = z_p[tempanddeppres]
             # 2. Make sure that depths are in correct order, but sorting takes time
             # therefore only sort if I've identified non-ascending depths:
             if np.any((z_p[1:] - z_p[:-1]) < 0):
                 sortz = np.argsort(z_p)
                 data_p = data_p[sortz]
                 z_p = z_p[sortz]
+            # To be in line with the IDL code also need to check for very wrong 
+            # depth values that might have slipped through:
+            udep = np.where(np.logical_and(z_p > -99.9, z_p < 10000))
+            z_p = z_p[udep]
+            data_p = data_p[udep]
             # 3. Find the temperature at the exact depth level:
             LTi1 = np.where(z_p < self.OHCdep)
             GEi1 = np.where(z_p >= self.OHCdep)
@@ -238,7 +291,7 @@ class Profiles(object):
                     mt[kk] = 0.5 * (data_p[kk] + data_p[kk-1])
                 # Work out the temp at the target depth:
                 if z_p[GEi1[0][0]] == self.OHCdep:
-                    print 'A sampled depth is equal to the desired level'
+                    print('A sampled depth is equal to the desired level')
                     tar_t1 = data_p[GEi1[0][0]]
                 else:
                     deltaT = data_p[GEi1[0][0]] - data_p[GEi1[0][0] -1]
@@ -255,7 +308,7 @@ class Profiles(object):
                     mean_t1 = sum(np.multiply(mt,dz))/self.OHCdep
                 # Make sure there are no crazy mean values:
                 if (abs(mean_t1) > 100 and mean_t1 != fv):
-                    raise ValueError, 'Extreme values found'
+                    raise ValueError('Extreme values found')
                 # Save the mean temperature at that depth and the temp at the target 
                 # depth:
                 all_mT[p] = mean_t1
@@ -309,7 +362,7 @@ class Profiles(object):
         grid_sum, binedges, binno = binned_stat_dd1.binned_statistic_dd(
             points, self.data_1d, statistic='sum', bins=bins)
         grid_pcount, binedges, binno = binned_stat_dd1.binned_statistic_dd(
-            points, self.data_1d[punique], statistic='count', bins=bins)
+            points2, self.data_1d[punique], statistic='count', bins=bins)
 #        grid_max, binedges, binno = binned_stat_dd1.binned_statistic_dd(
 #            points, self.data_1d, statistic = 'max', bins=bins)
 #        grid_min, binedges, binno = binned_stat_dd1.binned_statistic_dd(
@@ -338,7 +391,7 @@ class Profiles(object):
         
         self.fout = self.create_savename()
         ncout = Dataset(self.fout, 'w')
-        print 'Writing: %s' % self.fout
+        print('Writing: %s' % self.fout)
         
         # Create dimensions
         lon = ncout.createDimension(self.xvar, self.nx)

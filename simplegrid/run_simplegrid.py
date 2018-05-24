@@ -8,7 +8,7 @@ Script used to execute SimpleGrid package from command line.
 
 import sys
 
-from simplegrid.simplegrid import main
+from simplegrid import main
 
 if __name__ == '__main__':
     

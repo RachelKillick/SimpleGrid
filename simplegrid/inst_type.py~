@@ -90,9 +90,10 @@ def is_xbt(projectName,
     notXBT = [np.array([-1, -1])]
     unkXBT = [np.array([0, 0])] 
 
-#    projectName = ''.join(projectName)
-#    instRef = ''.join(instRef)
-    probeCode = int(instRef[60:63])
+    try:
+        probeCode = int(instRef[60:63])
+    except ValueError:
+        probeCode = ''
 
     if np.any(salinities != salinityFV):
         return notXBT + [maxDepth, WODCountryCode, WODCorrectionCode, probeCode]

@@ -26,6 +26,7 @@ irvar = ncf.variables['INST_REFERENCE'][:]
 psvar = ncf.variables['PSAL_CORRECTED'][:]
 datavar = ncf.variables['CONS_TEMP'][:]
 qcvar = ncf.variables['POTM_CORRECTED_QC'][:]
+qcvarps = ncf.variables['PSAL_CORRECTED_QC'][:]
 posqcvar = ncf.variables['POSITION_QC'][:]
 juldvar = ncf.variables['JULD'][:]
 OHCdep = 700.
@@ -43,6 +44,11 @@ pvar = np.array(pvar)
 rejectval = '4'
 posqc = posqcvar != rejectval
 qc = qcvar != rejectval
+
+# Mimicking what is done in IDL - set PSAL values where the PSAL_CORRECTED_QC 
+# value is '4' to be missing:
+fv = zvar.fill_value
+psvar[np.where(qcvarps == '4')] = fv
 
 # Try thinning to only deep profiles first and those without a bad pos QC flag:
 posqcset = np.where(posqcvar != '1')[0] # Bad Pos QC flag
@@ -137,12 +143,21 @@ for p in pvar:
     qc_p = np.where(np.logical_and(qcvar[p] == True, zvar[p].mask == False))
     data_p = datavar[p][qc_p]
     z_p = zvar[p][qc_p].data
+    # 1a. Sanity check to make sure no depth or temp data are missing:
+    tempanddeppres = np.where(np.logical_and(data_p != fv, z_p != fv))[0]
+    data_p = data_p[tempanddeppres]
+    z_p = z_p[tempanddeppres]
     # 2. Make sure that depths are in correct order, but sorting takes time
     # therefore only sort if I've identified non-ascending depths:
     if np.any((z_p[1:] - z_p[:-1]) < -1):
         sortz = np.argsort(z_p)
         data_p = data_p[sortz]
         z_p = z_p[sortz]
+    # 2a. To conform with what IDL does I should check at this stage if there 
+    # are any outrageous depth values that have thus far slipped through:
+    udep = np.where(np.logical_and(z_p > -99.9, z_p < 10000))[0]
+    z_p = z_p[udep]
+    data_p = data_p[udep]
     # 3. Find the temperature at the exact depth level:
     LTi1 = np.where(z_p < OHCdep)
     GEi1 = np.where(z_p >= OHCdep)
@@ -159,7 +174,7 @@ for p in pvar:
             mt[kk] = 0.5 * (data_p[kk] + data_p[kk-1])
         # Work out the temp at the target depth:
         if z_p[GEi1[0][0]] == OHCdep:
-            print 'A sampled depth is equal to the desired level'
+            print('A sampled depth is equal to the desired level')
             tar_t1 = data_p[GEi1[0][0]]
         else:
             deltaT = data_p[GEi1[0][0]] - data_p[GEi1[0][0] -1]
@@ -189,7 +204,8 @@ for p in pvar:
             datavar[p][np.where(zvar[p] <= OHCdep)] = mean_t1
         else:
             qcvar[p][np.where(zvar[p] <= OHCdep)] = False
-
+        # THINK OF A BETTER WAY OF DOING THIS - OVERWRITING ISN'T A GREAT IDEA!
+    
 # Make them all one-dimensional:
 datavar_1d = reshape_1d(datavar)
 xvar_1d = reshape_1d(xvar)

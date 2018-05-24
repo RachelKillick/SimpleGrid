@@ -174,7 +174,7 @@ def is_mbt(projectName,
     unkMBT = np.array([0, 0])
 
     codes = [[  1,  800,        00,    00], # MBT type/make unknown.
-             [101,   -1,        01,    01]] # GM39 (Russia).     
+             [101,   -1,         1,     1]] # GM39 (Russia).     
     codes = np.array(codes)   
 
     if projectName[0:3] == 'WOD':

@@ -69,7 +69,7 @@ class GridClim(object):
         """ Write gridded climatology to netcdf  """
         self.fout = self.create_savename()
         ncout = Dataset(self.fout, 'w')
-        print 'Writing: %s' % self.fout
+        print('Writing: {0}'.format(self.fout))
         
         # Create dimensions
         xdim = ncout.createDimension(self.xvar, self.nx)

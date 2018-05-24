@@ -32,7 +32,11 @@ def get_dt_files(config, minyr, maxyr):
                 dt = datetime.datetime(yr, mon, 1)
                 files.append(f)
                 dts.append(dt)
-                    
+            elif os.path.isfile(f.replace('.f.','.p.')):
+                dt = datetime.datetime(yr, mon, 1)
+                files.append(f.replace('.f.','.p.'))
+                dts.append(dt)
+                
     return dts, files
 
 
@@ -41,7 +45,7 @@ def calc_anom(gridfile, dt, clim):
     
     # Create anomaly file
     anomfile = gridfile.replace('.nc', '_anom_vs_%i-%i.nc' % (clim.minyr, clim.maxyr))
-    print 'Writing: %s' % (anomfile)
+    print('Writing: %s', % (anomfile))
     shutil.copy(gridfile, anomfile)
     
     # Calculate anomaly

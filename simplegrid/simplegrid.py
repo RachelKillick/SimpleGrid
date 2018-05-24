@@ -5,7 +5,7 @@ Module containing main routines to execute SimpleGrid.
 
 
 import argparse
-import ConfigParser
+import configparser
 
 import profiles
 import tools
@@ -26,7 +26,7 @@ def get_args():
 
 def get_namelist(args):
     """ Read config options into <ConfigParser> object """
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     config.read(args.namelist)
     
     return config
@@ -63,6 +63,6 @@ def main():
              
             
     # Finished
-    print '\nFinished!\n'
+    print('\nFinished!\n')
 
         
