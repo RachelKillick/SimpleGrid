@@ -367,7 +367,7 @@ class Profiles(object):
         #grid_sum, binedges, binno = binned_stat_dd1.binned_statistic_dd(
         #    points, self.data_1d, statistic='sum', bins=bins)
         grid_sum, binedges, binno = binned_stat_dd1.binned_statistic_dd(
-            points3, all_mTqc, statistic = 'sum', bins = bins)
+            points3, all_mTqc1, statistic = 'sum', bins = bins)
         grid_pcount, binedges, binno = binned_stat_dd1.binned_statistic_dd(
             points3, self.data_1d[puniqueqc], statistic='count', bins=bins)
 #        grid_max, binedges, binno = binned_stat_dd1.binned_statistic_dd(

@@ -360,6 +360,7 @@ class Profiles(object):
         points2 = np.vstack([self.z_1d[punique], self.y_1d[punique], self.x_1d[punique]]).transpose()
         points3 = np.vstack([self.z_1d[puniqueqc], self.y_1d[puniqueqc], self.x_1d[puniqueqc]]).transpose()
         bins = [self.zbounds, self.ybounds, self.xbounds]
+        print(bins)
        
         # Grid data
         grid_count, binedges, binno = binned_stat_dd1.binned_statistic_dd(
