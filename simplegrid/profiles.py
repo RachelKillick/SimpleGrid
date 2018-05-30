@@ -317,10 +317,10 @@ class Profiles(object):
                 # is to make sure that this weighted mean gets used instead of the 
                 # simple mean - I think the simplest (VERY messy) way of doing this is
                 # to replace all the actual profile values with this mean:
-                if mean_t1 != fv:
-                    self.data[p][np.where(self.z[p] <= self.OHCdep)] = mean_t1
-                else:
-                    self.qc[p][np.where(self.z[p] <= self.OHCdep)] = False
+                #if mean_t1 != fv:
+                #    self.data[p][np.where(self.z[p] <= self.OHCdep)] = mean_t1
+                #else:
+                #    self.qc[p][np.where(self.z[p] <= self.OHCdep)] = False
                 # THINK OF A BETTER WAY OF DOING THIS - OVERWRITING ISN'T A GREAT IDEA!
 
         # Reshape
@@ -346,30 +346,39 @@ class Profiles(object):
         self.y_1d = self.y_1d[qcind]
         self.p_1d = self.p_1d[qcind]
         self.z_1d = self.z_1d[qcind]
-        
+        all_mTqc = all_mT[self.posqc]
+        all_mTqc1 = all_mTqc[np.where(all_mTqc != 99999.0)]
+        print(all_mTqc1)
+                
         # Prepare data for gridding
         self.init_xgrid()
         self.init_ygrid()
         self.init_zgrid()
         punique = np.unique(self.p_1d, return_index = True)[1]
         points = np.vstack([self.z_1d, self.y_1d, self.x_1d]).transpose()
+        puniqueqc = punique[np.where(all_mTqc != 99999.0)]
         points2 = np.vstack([self.z_1d[punique], self.y_1d[punique], self.x_1d[punique]]).transpose()
+        points3 = np.vstack([self.z_1d[puniqueqc], self.y_1d[puniqueqc], self.x_1d[puniqueqc]]).transpose()
         bins = [self.zbounds, self.ybounds, self.xbounds]
        
         # Grid data
         grid_count, binedges, binno = binned_stat_dd1.binned_statistic_dd(
             points, self.data_1d, statistic='count', bins=bins)
+        #grid_sum, binedges, binno = binned_stat_dd1.binned_statistic_dd(
+        #    points, self.data_1d, statistic='sum', bins=bins)
         grid_sum, binedges, binno = binned_stat_dd1.binned_statistic_dd(
-            points, self.data_1d, statistic='sum', bins=bins)
+            points3, all_mTqc1, statistic = 'sum', bins = bins)
         grid_pcount, binedges, binno = binned_stat_dd1.binned_statistic_dd(
-            points2, self.data_1d[punique], statistic='count', bins=bins)
+            points3, self.data_1d[puniqueqc], statistic='count', bins=bins)
 #        grid_max, binedges, binno = binned_stat_dd1.binned_statistic_dd(
 #            points, self.data_1d, statistic = 'max', bins=bins)
 #        grid_min, binedges, binno = binned_stat_dd1.binned_statistic_dd(
 #            points, self.data_1d, statistic = 'min', bins=bins) 
         
-        grid_mean = grid_sum / grid_count
-        grid_mean = np.ma.MaskedArray(grid_mean, mask = (grid_count == 0))
+        #grid_mean = grid_sum / grid_count
+        grid_mean = grid_sum / grid_pcount
+        #grid_mean = np.ma.MaskedArray(grid_mean, mask = (grid_count == 0))
+        grid_mean = np.ma.MaskedArray(grid_mean, mask = (grid_pcount == 0))
         self.grid_mean = grid_mean
         self.grid_count = grid_count
         self.grid_sum = grid_sum
