@@ -3,7 +3,6 @@
 from netCDF4 import Dataset, date2num
 import numpy as np
 import scipy.stats
-import binned_stat_dd1
 import inst_type
 import time
 import warnings
@@ -114,7 +113,6 @@ class Profiles(object):
     def load_psalqc(self):
         """ Load salinity QC data as boolean <np.array> """
         rejectval = self.config.getint('profiles', 'qcreject')
-        #self.psalqc = self.read_var(self.psalqcvar) != rejectval
         self.psalqc = self.read_var(self.psalqcvar)
         self.psalqc[np.where(self.psalqc!='4')]= 1
         self.psalqc[np.where(self.psalqc=='4')]= 0
@@ -124,7 +122,6 @@ class Profiles(object):
     def load_qc(self):
         """ Load data quality control flags as <np.array> """
         rejectval = self.config.getint('profiles', 'qcreject')        
-        #self.qc = self.read_var(self.qcvar) != rejectval
         self.qc = self.read_var(self.qcvar)
         self.qc[np.where(self.qc!='4')] = 1
         self.qc[np.where(self.qc=='4')] = 0
@@ -134,7 +131,6 @@ class Profiles(object):
     def load_posqc(self):
         """ Load position quality control flags as <np.array> """
         rejectval = self.config.getint('profiles', 'posqcreject')        
-        #self.posqc = self.read_var(self.posqcvar) != rejectval
         self.posqc = self.read_var(self.posqcvar)
         self.posqc[np.where(self.posqc != '4')] = 1
         self.posqc[np.where(self.posqc == '4')] = 0
@@ -313,15 +309,6 @@ class Profiles(object):
                 # depth:
                 all_mT[p] = mean_t1
                 all_lT[p] = tar_t1
-                # Now what I want to do (as a weighted average fix for the time being)
-                # is to make sure that this weighted mean gets used instead of the 
-                # simple mean - I think the simplest (VERY messy) way of doing this is
-                # to replace all the actual profile values with this mean:
-                #if mean_t1 != fv:
-                #    self.data[p][np.where(self.z[p] <= self.OHCdep)] = mean_t1
-                #else:
-                #    self.qc[p][np.where(self.z[p] <= self.OHCdep)] = False
-                # THINK OF A BETTER WAY OF DOING THIS - OVERWRITING ISN'T A GREAT IDEA!
 
         # Reshape
         self.data_1d = self.reshape_1d(self.data)
@@ -348,7 +335,7 @@ class Profiles(object):
         self.z_1d = self.z_1d[qcind]
         all_mTqc = all_mT[self.posqc]
         all_mTqc1 = all_mTqc[np.where(all_mTqc != 99999.0)]
-        print(all_mTqc1)
+        #print(all_mTqc1)
                 
         # Prepare data for gridding
         self.init_xgrid()
@@ -359,21 +346,24 @@ class Profiles(object):
         puniqueqc = punique[np.where(all_mTqc != 99999.0)]
         points2 = np.vstack([self.z_1d[punique], self.y_1d[punique], self.x_1d[punique]]).transpose()
         points3 = np.vstack([self.z_1d[puniqueqc], self.y_1d[puniqueqc], self.x_1d[puniqueqc]]).transpose()
+        print(np.where(np.logical_and(self.y_1d[puniqueqc] >= -32, self.y_1d[puniqueqc] < -30)))
+        print(np.where(np.logical_and(self.x_1d[puniqueqc] >= 58, self.x_1d[puniqueqc] < 60)))
         bins = [self.zbounds, self.ybounds, self.xbounds]
-        print(bins)
-       
+        #print(bins)
+## MAYBE SOMETHING HAS GONE WRONG IN MY PREPARATION FOR DATA GRIDDING SO THAT 
+## TOO MANY PROFILES ARE BEING CLASSED AS USEFUL...       
         # Grid data
-        grid_count, binedges, binno = binned_stat_dd1.binned_statistic_dd(
+        grid_count, binedges, binno = scipy.stats.binned_statistic_dd(
             points, self.data_1d, statistic='count', bins=bins)
-        #grid_sum, binedges, binno = binned_stat_dd1.binned_statistic_dd(
+        #grid_sum, binedges, binno = scipy.stats.binned_statistic_dd(
         #    points, self.data_1d, statistic='sum', bins=bins)
-        grid_sum, binedges, binno = binned_stat_dd1.binned_statistic_dd(
+        grid_sum, binedges, binno = scipy.stats.binned_statistic_dd(
             points3, all_mTqc1, statistic = 'sum', bins = bins)
-        grid_pcount, binedges, binno = binned_stat_dd1.binned_statistic_dd(
+        grid_pcount, binedges, binno = scipy.stats.binned_statistic_dd(
             points3, self.data_1d[puniqueqc], statistic='count', bins=bins)
-#        grid_max, binedges, binno = binned_stat_dd1.binned_statistic_dd(
+#        grid_max, binedges, binno = scipy.stats.binned_statistic_dd(
 #            points, self.data_1d, statistic = 'max', bins=bins)
-#        grid_min, binedges, binno = binned_stat_dd1.binned_statistic_dd(
+#        grid_min, binedges, binno = scipy.stats.binned_statistic_dd(
 #            points, self.data_1d, statistic = 'min', bins=bins) 
         
         #grid_mean = grid_sum / grid_count
