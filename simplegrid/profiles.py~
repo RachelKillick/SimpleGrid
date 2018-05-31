@@ -114,6 +114,7 @@ class Profiles(object):
         """ Load salinity QC data as boolean <np.array> """
         rejectval = self.config.getint('profiles', 'qcreject')
         self.psalqc = self.read_var(self.psalqcvar)
+        self.psalqc = self.psalqc.astype('unicode')
         self.psalqc[np.where(self.psalqc!='4')]= 1
         self.psalqc[np.where(self.psalqc=='4')]= 0
         self.psalqc = self.psalqc.astype(bool)
@@ -123,8 +124,11 @@ class Profiles(object):
         """ Load data quality control flags as <np.array> """
         rejectval = self.config.getint('profiles', 'qcreject')        
         self.qc = self.read_var(self.qcvar)
+        self.qc = self.qc.astype('unicode')
+        print(self.qc)
         self.qc[np.where(self.qc!='4')] = 1
         self.qc[np.where(self.qc=='4')] = 0
+        print(self.qc)
         self.qc = self.qc.astype(bool)
         self.test_shape(self.qcvar, self.qc.shape, 2)
         
@@ -132,6 +136,7 @@ class Profiles(object):
         """ Load position quality control flags as <np.array> """
         rejectval = self.config.getint('profiles', 'posqcreject')        
         self.posqc = self.read_var(self.posqcvar)
+        self.posqc = self.posqc.astype('unicode')
         self.posqc[np.where(self.posqc != '4')] = 1
         self.posqc[np.where(self.posqc == '4')] = 0
         self.posqc = self.posqc.astype(bool)
@@ -173,6 +178,8 @@ class Profiles(object):
         nGTSPP0 = 0.
         nGTSPP999 = 0.
         index = np.where(self.qc == False)
+        print(self.qc)
+        #print(index)
         print('No. of rejected temperature values', np.shape(index))
         
         # Make the salinity values missing where the salinity QC flag is bad:
@@ -346,10 +353,11 @@ class Profiles(object):
         puniqueqc = punique[np.where(all_mTqc != 99999.0)]
         points2 = np.vstack([self.z_1d[punique], self.y_1d[punique], self.x_1d[punique]]).transpose()
         points3 = np.vstack([self.z_1d[puniqueqc], self.y_1d[puniqueqc], self.x_1d[puniqueqc]]).transpose()
-        print(np.where(np.logical_and(self.y_1d[puniqueqc] >= -32, self.y_1d[puniqueqc] < -30)))
-        print(np.where(np.logical_and(self.x_1d[puniqueqc] >= 58, self.x_1d[puniqueqc] < 60)))
+        print(np.where(np.logical_and(np.logical_and(self.y_1d[puniqueqc] >= -32,
+          self.y_1d[puniqueqc] < -30),np.logical_and(self.x_1d[puniqueqc] >= 58,
+          self.x_1d[puniqueqc] < 60))))
         bins = [self.zbounds, self.ybounds, self.xbounds]
-        #print(bins)
+
 ## MAYBE SOMETHING HAS GONE WRONG IN MY PREPARATION FOR DATA GRIDDING SO THAT 
 ## TOO MANY PROFILES ARE BEING CLASSED AS USEFUL...       
         # Grid data
