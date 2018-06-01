@@ -184,10 +184,17 @@ class Profiles(object):
         index = np.where(self.psalqc == False)
         print('No. of rejected salinity values', np.shape(index))
         
-        # Try thinning to only deep profiles first
+        # Try thinning to only deep profiles first - THIS IS LIMITING THIS CODE
+        # TO ONLY BE ABLE TO WORK OUT OHC FROM 0 TO A SPECIFIC DEPTH AND IT 
+        # WOULD BE GOOD TO REMOVE THIS DEPENDENCY.
+        # COULD I HAVE A VECTOR OF SOME DESCRIPTION SO IT USES THE PROFILES THAT 
+        # GO DOWN TO THE RIGHT DEPTH, BUT THAT DEPTH CAN VARY?
         posqcset = np.where(self.posqc != True)[0]
-        deepset = np.unique(np.where(np.logical_and(np.logical_and(self.z.data >= 700,self.z.mask == False), self.qc != False))[0])
-        combset = np.array(np.setdiff1d(deepset,posqcset)) # Profiles that are deep and aren't bad
+        self.OHCdep = float(self.OHCdep)
+        deepset = np.unique(np.where(np.logical_and(np.logical_and(
+          self.z.data >= self.OHCdep,self.z.mask == False), self.qc != False))[0])
+        # Get profiles that are deep and aren't bad:
+        combset = np.array(np.setdiff1d(deepset,posqcset))
         
         # Restrict to only profiles that are deeper than 700m:
         self.data = self.data[combset]
@@ -245,7 +252,6 @@ class Profiles(object):
         
         # Do the vertical averaging:
         self.p = np.array(range(len(self.p)))
-        self.OHCdep = float(self.OHCdep)
         self.maxgap = float(self.maxgap)
 
         # Loop over these profiles and do vertical averages:
@@ -338,48 +344,72 @@ class Profiles(object):
         self.z_1d = self.z_1d[qcind]
         all_mTqc = all_mT[self.posqc]
         all_mTqc1 = all_mTqc[np.where(all_mTqc != 99999.0)]
-        #print(all_mTqc1)
                 
         # Prepare data for gridding
         self.init_xgrid()
         self.init_ygrid()
         self.init_zgrid()
+        
+        # Getting the unique profile references:
         punique = np.unique(self.p_1d, return_index = True)[1]
-        points = np.vstack([self.z_1d, self.y_1d, self.x_1d]).transpose()
+        
+        # From the unique profile references selecting only those profiles that 
+        # have a mean temperature over the depth of interest:
         puniqueqc = punique[np.where(all_mTqc != 99999.0)]
-        points2 = np.vstack([self.z_1d[punique], self.y_1d[punique], self.x_1d[punique]]).transpose()
-        points3 = np.vstack([self.z_1d[puniqueqc], self.y_1d[puniqueqc], self.x_1d[puniqueqc]]).transpose()
-        print(np.where(np.logical_and(np.logical_and(self.y_1d[puniqueqc] >= -32,
-          self.y_1d[puniqueqc] < -30),np.logical_and(self.x_1d[puniqueqc] >= 58,
-          self.x_1d[puniqueqc] < 60))))
+        
+        # Getting references for all the points - so every temp value will have 
+        # a depth, lat and long i.e. you will still have multiple points per 
+        # profile:
+        points = np.vstack([self.z_1d, self.y_1d, self.x_1d]).transpose()
+        
+        # Getting a single reference for each profile, this will just take the 
+        # first value in points, for each profile => points2 will have a 
+        # latitude, a longitude and the shallowest accepted depth of the profile
+        # => This point will always (pretty much) be put into the top set of 
+        # grid boxes, would therefore need to consider this further if I wanted
+        # to populate multiple depth level grid boxes at once:
+        points2 = np.vstack([self.z_1d[punique], self.y_1d[punique], 
+          self.x_1d[punique]]).transpose()
+        
+        # points3 is like points 2, but gets coordinates for only profiles that
+        # have a mean temperature down to the depth of interest:
+        points3 = np.vstack([self.z_1d[puniqueqc], self.y_1d[puniqueqc], 
+          self.x_1d[puniqueqc]]).transpose()
+
+        # Pretty self explanatory - the boundaries of the grid boxes:
         bins = [self.zbounds, self.ybounds, self.xbounds]
 
-## MAYBE SOMETHING HAS GONE WRONG IN MY PREPARATION FOR DATA GRIDDING SO THAT 
-## TOO MANY PROFILES ARE BEING CLASSED AS USEFUL...       
-        # Grid data
+        # Grid data:
         grid_count, binedges, binno = scipy.stats.binned_statistic_dd(
             points, self.data_1d, statistic='count', bins=bins)
-        #grid_sum, binedges, binno = scipy.stats.binned_statistic_dd(
-        #    points, self.data_1d, statistic='sum', bins=bins)
         grid_sum, binedges, binno = scipy.stats.binned_statistic_dd(
+            points, self.data_1d, statistic='sum', bins=bins)
+        grid_meansum, binedges, binno = scipy.stats.binned_statistic_dd(
             points3, all_mTqc1, statistic = 'sum', bins = bins)
         grid_pcount, binedges, binno = scipy.stats.binned_statistic_dd(
             points3, self.data_1d[puniqueqc], statistic='count', bins=bins)
 #        grid_max, binedges, binno = scipy.stats.binned_statistic_dd(
 #            points, self.data_1d, statistic = 'max', bins=bins)
 #        grid_min, binedges, binno = scipy.stats.binned_statistic_dd(
-#            points, self.data_1d, statistic = 'min', bins=bins) 
-        
-        #grid_mean = grid_sum / grid_count
-        grid_mean = grid_sum / grid_pcount
-        #grid_mean = np.ma.MaskedArray(grid_mean, mask = (grid_count == 0))
-        grid_mean = np.ma.MaskedArray(grid_mean, mask = (grid_pcount == 0))
-        self.grid_mean = grid_mean
+#            points, self.data_1d, statistic = 'min', bins=bins)
+#        grid_med, binedges, binno = scipy.stats.binned_statistic_dd(
+#            points, all_mTqc1, statistic = 'median', bins = bins)
+       
+        # Sum of valid temps/ number of valid obs:
+        grid_tmean = grid_sum / grid_count
+        grid_tmean = np.ma.MaskedArray(grid_tmean, mask = (grid_count == 0))
+        # Sum of valid mean temps/ number of valid profiles:
+        grid_meantmean = grid_meansum / grid_pcount
+        grid_meantmean = np.ma.MaskedArray(grid_meantmean, mask = (grid_pcount == 0))
+        self.grid_tmean = grid_tmean
         self.grid_count = grid_count
         self.grid_sum = grid_sum
+        self.grid_meansum = grid_meansum
         self.grid_pcount = grid_pcount
+        self.grid_meantmean = grid_meantmean
 #        self.grid_max = grid_max
 #        self.grid_min = grid_min
+#        self.grid_med = grid_med
 
     def create_savename(self):
         """ Generate file name based on file name and grid specification """
@@ -430,11 +460,14 @@ class Profiles(object):
         zboundaries = np.concatenate([self.zminbounds, np.reshape(self.zmaxbounds[-1],(1,1))[0]])
         depthBndsVar[:,:] = np.array([zboundaries[:-1], zboundaries[1:]]).T
 
-        varmean = ncout.createVariable(self.datavar, 'float32', ('time',self.zvar,self.yvar,self.xvar))
+        vartmean = ncout.createVariable(self.datavar, 'float32', ('time',self.zvar,self.yvar,self.xvar))
+        varmtmean = ncout.createVariable('mean', 'float32', ('time',self.zvar,self.yvar,self.xvar))
         varsum = ncout.createVariable('sum', 'float32', ('time',self.zvar,self.yvar,self.xvar))
+        varmsum = ncout.createVariable('meansum', 'float32', ('time',self.zvar,self.yvar,self.xvar))
         varcount = ncout.createVariable('count', 'float32', ('time',self.zvar,self.yvar,self.xvar))
 #        varmax = ncout.createVariable('gmax', 'float32', ('time', self.zvar, self.yvar, self.xvar))
 #        varmin = ncout.createVariable('gmin', 'float32', ('time', self.zvar, self.yvar, self.xvar))
+#        varmed = ncout.createVariable('median', 'float32', ('time', self.zvar, self.yvar, self.xvar))
         varpcount = ncout.createVariable('pcount', 'float32', ('time', self.zvar, self.yvar, self.xvar))
         vartime = ncout.createVariable('time', 'float64', ('time',))
         vartime.units = 'hours since 0001-01-01 00:00:00'
@@ -444,12 +477,15 @@ class Profiles(object):
         varx[:] = self.xgrid
         vary[:] = self.ygrid
         varz[:] = self.zgrid
-        varmean[:] = self.grid_mean[np.newaxis]
+        vartmean[:] = self.grid_tmean[np.newaxis]
+        varmtmean[:] = self.grid_meantmean[np.newaxis]
         varsum[:] = self.grid_sum[np.newaxis]
+        varmsum[:] = self.grid_meansum[np.newaxis]
         varcount[:] = self.grid_count[np.newaxis]
         varpcount[:] = self.grid_pcount[np.newaxis]
 #        varmax[:] = self.grid_max[np.newaxis]
 #        varmin[:] = self.grid_min[np.newaxis]
+#        varmed[:] = self.grid_med[np.newaxis]
         vartime[:] = date2num(self.dt, units=vartime.units, calendar=vartime.calendar)
         
         # Add  global attributes
