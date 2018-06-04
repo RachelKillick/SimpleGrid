@@ -45,7 +45,7 @@ def calc_anom(gridfile, dt, clim):
     
     # Create anomaly file
     anomfile = gridfile.replace('.nc', '_anom_vs_%i-%i.nc' % (clim.minyr, clim.maxyr))
-    print('Writing: %s', % (anomfile))
+    print('Writing: {0}'.format(anomfile))
     shutil.copy(gridfile, anomfile)
     
     # Calculate anomaly

@@ -53,7 +53,8 @@ def calc_anom(gridfile, dt, clim):
     anomnc = Dataset(anomfile, 'r+')
     griddat = gridnc.variables[clim.datavar]
     anomdat = anomnc.variables[clim.datavar]
-    anomdat[:] = griddat[:] - clim.grid_mean[dt.month - 1]
+    #anomdat[:] = griddat[:] - clim.grid_mean[dt.month - 1]
+    anomdat[:] = griddat[:] - clim.grid_pmean[dt.month - 1]
     
     # Close files
     gridnc.close()

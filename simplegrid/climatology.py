@@ -35,11 +35,12 @@ class GridClim(object):
         self.nx = profiles.nx
         self.ny = profiles.ny
         self.nz = profiles.nz
-        self.grid_sum = np.zeros((12*(self.maxyr - self.minyr +1), self.nz, self.ny, self.nx))
-        self.grid_count = np.zeros((12*(self.maxyr - self.minyr +1), self.nz, self.ny, self.nx))
+        self.grid_sum = np.zeros((12, self.nz, self.ny, self.nx))
+        self.grid_count = np.zeros((12, self.nz, self.ny, self.nx))
         self.grid_meant = np.zeros((12, self.nz, self.ny, self.nx))
-        self.grid_meansumo = np.zeros((12, self.nz, self.ny, self.nx))
-        self.grid_pcounto = np.zeros((12, self.nz, self.ny, self.nx))
+        self.grid_meansum = np.zeros((12, self.nz, self.ny, self.nx))
+        self.grid_pcount = np.zeros((12, self.nz, self.ny, self.nx))
+        self.grid_nonzerocount = np.zeros((12, self.nz, self.ny, self.nx))
         
     def accumulate_profiles(self, profiles):
         """ Accumulate data from profiles that match date constraints """
@@ -50,27 +51,21 @@ class GridClim(object):
             if not self.initialized:
                 self.init_grids(profiles)
                 self.initialized=True
-                
-            self.grid_meansumo[mon-1] += profiles.grid_meansum
-            self.grid_pcounto[mon-1] += profiles.grid_pcount
-            self.grid_count[(yr - self.gridyr)*12 + (mon-1)] += profiles.grid_count
-            self.grid_sum[(yr - self.gridyr)*12 + (mon-1)] += profiles.grid_sum
-            self.grid_meant[mon-1] += profiles.grid_meantmean
-            self.grid_pcount[(yr - self.gridyr)*12 + (mon-1)] += profiles.grid_pcount
+
+            self.grid_meansum[mon-1] += profiles.grid_meansum
+            self.grid_pcount[mon-1] += profiles.grid_pcount
+            self.grid_nonzerocount[mon-1][np.where(profiles.grid_pcount != 0.)] += 1
+            self.grid_count[mon-1] += profiles.grid_count
+            self.grid_sum[mon-1] += profiles.grid_sum
+            self.grid_meant[mon-1][np.where(profiles.grid_meantmean.mask == False)] += profiles.grid_meantmean[np.where(profiles.grid_meantmean.mask == False)]
 
     def calc_clim(self):
         """ Calculate monthly climatological means"""
-        # NEED TO WORK OUT HOW TO DO THIS SO THAT THERE IS AN AVERAGE FOR EACH
-        # MONTH FIRST AND THEN THESE AVERAGES ARE AVERAGED - IT'S POSSIBLE THAT
-        # THE BEST WAY TO DO THIS WILL BE TO HAVE AN AVERAGE OUTPUT DIRECTLY
-        # FROM THE PROFILES.PY SCRIPT INSTEAD OF WORKING IT OUT AFTER. HANG ON
-        # I ALREADY HAVE THIS - SO IT'S POSSIBLE I'M JUST READING IN THE WRONG 
-        # THINGS!
-        self.grid_mean[m] = self.grid_sum / self.grid_count
+        self.grid_mean = self.grid_sum / self.grid_count
         self.grid_mean = np.ma.MaskedArray(self.grid_mean, mask = (self.grid_count == 0))
-        self.grid_pmean[m] = self.grid_meantmean / (self.maxyr - self.minyr +1)
-        self.grid_pmean = np.ma.MaskedArray(self.grid_pmean, mask = (self.grid_pcounto == 0)) # I think this wants to remain pcounto because if there haven't been any profiles with mean temps calculated for this month in any of the years of the climatology we want the data to be masked.
-        self.grid_meansumo = self.grid_meansumo / self.grid_pcounto
+        self.grid_pmean = self.grid_meant / self.grid_nonzerocount
+        self.grid_pmean = np.ma.MaskedArray(self.grid_pmean, mask = (self.grid_nonzerocount == 0))
+        self.grid_meansumo = self.grid_meansum / self.grid_pcount
         self.grid_meansumo = np.ma.MaskedArray(self.grid_meansumo, mask = (self.grid_pcount == 0))
 
     def create_savename(self):
@@ -99,13 +94,14 @@ class GridClim(object):
         varx = ncout.createVariable(self.xvar, 'float64', (self.xvar,))
         vary = ncout.createVariable(self.yvar, 'float64', (self.yvar,))
         varz = ncout.createVariable(self.zvar, 'float64', (self.zvar,))
-        varmean = ncout.createVariable(self.datavar, 'float32', ('month',self.zvar,self.yvar,self.xvar))
-        varsum = ncout.createVariable('sum', 'float32', ('month',self.zvar,self.yvar,self.xvar))
-        varcount = ncout.createVariable('count', 'float32', ('month',self.zvar,self.yvar,self.xvar))
-        varpmean = ncout.createVariable('pmean', 'float32', ('month',self.zvar,self.yvar,self.xvar))
         varmeansum = ncout.createVariable('meansum', 'float32', ('month',self.zvar,self.yvar,self.xvar))
         varpcount = ncout.createVariable('pcount', 'float32', ('month',self.zvar,self.yvar,self.xvar))
-        varmeansumo = ncout.createVariable('meansumo','float32',('month',self.zvar,self.yvar,self.xvar))
+        varcount = ncout.createVariable('count', 'float32', ('month',self.zvar,self.yvar,self.xvar))
+        varsum = ncout.createVariable('sum', 'float32', ('month',self.zvar,self.yvar,self.xvar))
+        varmeant = ncout.createVariable('meant', 'float32', ('month',self.zvar,self.yvar,self.xvar))
+        varmean = ncout.createVariable('mean', 'float32', ('month',self.zvar,self.yvar,self.xvar))
+        varpmean = ncout.createVariable(self.datavar, 'float32', ('month',self.zvar,self.yvar,self.xvar))
+        varmeansumo = ncout.createVariable('meansumo', 'float32', ('month',self.zvar,self.yvar,self.xvar))
         varmon = ncout.createVariable('month', 'int32', ('month',))
         
         varx.standard_name = 'longitude'
@@ -129,18 +125,18 @@ class GridClim(object):
         zboundaries = np.concatenate([self.zminbounds, np.reshape(self.zmaxbounds[-1],(1,1))[0]])
         depthBndsVar[:,:] = np.array([zboundaries[:-1], zboundaries[1:]]).T
 
-
         # Write to variables
         varx[:] = self.xgrid
         vary[:] = self.ygrid
         varz[:] = self.zgrid
-        varmean[:] = self.grid_mean
-        varsum[:] = self.grid_sum
-        varcount[:] = self.grid_count
-        varpmean[:] = self.grid_pmean
         varmeansum[:] = self.grid_meansum
-        varmeansumo[:] = self.grid_meansumo
         varpcount[:] = self.grid_pcount
+        varcount[:] = self.grid_count
+        varsum[:] = self.grid_sum
+        varmeant[:] = self.grid_meant
+        varmean[:] = self.grid_mean
+        varpmean[:] = self.grid_pmean
+        varmeansumo[:] = self.grid_meansumo
         varmon[:] = np.arange(12) + 1
         
         # Add  global attributes

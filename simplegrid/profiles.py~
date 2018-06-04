@@ -400,7 +400,7 @@ class Profiles(object):
         grid_tmean = np.ma.MaskedArray(grid_tmean, mask = (grid_count == 0))
         # Sum of valid mean temps/ number of valid profiles:
         grid_meantmean = grid_meansum / grid_pcount
-        grid_meantmean = np.ma.MaskedArray(grid_mean, mask = (grid_pcount == 0))
+        grid_meantmean = np.ma.MaskedArray(grid_meantmean, mask = (grid_pcount == 0))
         self.grid_tmean = grid_tmean
         self.grid_count = grid_count
         self.grid_sum = grid_sum
@@ -460,8 +460,8 @@ class Profiles(object):
         zboundaries = np.concatenate([self.zminbounds, np.reshape(self.zmaxbounds[-1],(1,1))[0]])
         depthBndsVar[:,:] = np.array([zboundaries[:-1], zboundaries[1:]]).T
 
-        vartmean = ncout.createVariable(self.datavar, 'float32', ('time',self.zvar,self.yvar,self.xvar))
-        varmtmean = ncout.createVariable('mean', 'float32', ('time',self.zvar,self.yvar,self.xvar))
+        vartmean = ncout.createVariable('tmean', 'float32', ('time',self.zvar,self.yvar,self.xvar))
+        varmtmean = ncout.createVariable('meantmean', 'float32', ('time',self.zvar,self.yvar,self.xvar))
         varsum = ncout.createVariable('sum', 'float32', ('time',self.zvar,self.yvar,self.xvar))
         varmsum = ncout.createVariable('meansum', 'float32', ('time',self.zvar,self.yvar,self.xvar))
         varcount = ncout.createVariable('count', 'float32', ('time',self.zvar,self.yvar,self.xvar))

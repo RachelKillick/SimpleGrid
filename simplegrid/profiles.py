@@ -460,8 +460,8 @@ class Profiles(object):
         zboundaries = np.concatenate([self.zminbounds, np.reshape(self.zmaxbounds[-1],(1,1))[0]])
         depthBndsVar[:,:] = np.array([zboundaries[:-1], zboundaries[1:]]).T
 
-        vartmean = ncout.createVariable(self.datavar, 'float32', ('time',self.zvar,self.yvar,self.xvar))
-        varmtmean = ncout.createVariable('mean', 'float32', ('time',self.zvar,self.yvar,self.xvar))
+        vartmean = ncout.createVariable('tmean', 'float32', ('time',self.zvar,self.yvar,self.xvar))
+        varmtmean = ncout.createVariable(self.datavar, 'float32', ('time',self.zvar,self.yvar,self.xvar))
         varsum = ncout.createVariable('sum', 'float32', ('time',self.zvar,self.yvar,self.xvar))
         varmsum = ncout.createVariable('meansum', 'float32', ('time',self.zvar,self.yvar,self.xvar))
         varcount = ncout.createVariable('count', 'float32', ('time',self.zvar,self.yvar,self.xvar))
