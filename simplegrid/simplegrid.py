@@ -6,6 +6,8 @@ Module containing main routines to execute SimpleGrid.
 
 import argparse
 import configparser
+import glob
+from subprocess import call
 
 import profiles
 import tools
@@ -60,8 +62,14 @@ def main():
     if config.getboolean('anomalies', 'calc_anomalies'):
         for dt, gridfile in zip(dts, gridfiles):
             tools.calc_anom(gridfile, dt, clim)
-             
-            
+        
+        # Move the anomalies to the anomaly folder:
+        anomdir = config.get('anomalies','anomdir')
+        profdir = config.get('grid','dir')
+        files = glob.glob(profdir + '*_anom_*')
+        for f in files:
+            call('mv ' + f + ' ' + anomdir, shell = True)
+
     # Finished
     print('\nFinished!\n')
 

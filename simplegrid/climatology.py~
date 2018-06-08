@@ -64,13 +64,13 @@ class GridClim(object):
         self.grid_mean = self.grid_sum / self.grid_count
         self.grid_mean = np.ma.MaskedArray(self.grid_mean, mask = (self.grid_count == 0))
         self.grid_pmean = self.grid_meant / self.grid_nonzerocount
-        self.grid_pmean = np.ma.MaskedArray(self.grid_pmean, mask = (self.grid_count == 0))
+        self.grid_pmean = np.ma.MaskedArray(self.grid_pmean, mask = (self.grid_nonzerocount == 0))
         self.grid_meansumo = self.grid_meansum / self.grid_pcount
         self.grid_meansumo = np.ma.MaskedArray(self.grid_meansumo, mask = (self.grid_pcount == 0))
 
     def create_savename(self):
         """ Generate file name based on file name and grid specification """
-        climf = self.config.get('grid', 'dir') + self.config.get('profiles', 'fpattern')
+        climf = self.config.get('clim', 'cldir') + self.config.get('profiles', 'fpattern')
         climf = climf.replace('${YYYY}${MM}', 'climatology_%i-%i' % (self.minyr, self.maxyr))
         newsuffix = '_gridded_%ix%ix%i.nc' % (self.nx, self.ny, self.nz)
         climf = climf.replace('.nc', newsuffix)

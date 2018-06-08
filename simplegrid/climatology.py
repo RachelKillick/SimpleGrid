@@ -70,7 +70,7 @@ class GridClim(object):
 
     def create_savename(self):
         """ Generate file name based on file name and grid specification """
-        climf = self.config.get('grid', 'dir') + self.config.get('profiles', 'fpattern')
+        climf = self.config.get('climatology', 'cldir') + self.config.get('profiles', 'fpattern')
         climf = climf.replace('${YYYY}${MM}', 'climatology_%i-%i' % (self.minyr, self.maxyr))
         newsuffix = '_gridded_%ix%ix%i.nc' % (self.nx, self.ny, self.nz)
         climf = climf.replace('.nc', newsuffix)
