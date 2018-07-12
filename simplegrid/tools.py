@@ -13,7 +13,7 @@ from netCDF4 import Dataset
 class ShapeError(Exception):
     pass
 
-def get_dt_files(config, minyr, maxyr):
+def get_dt_files(config, minyr, maxyr, clim = False):
     """ 
     Return dates & filenames matching specified pattern between
     between minyr and maxyr 
@@ -21,8 +21,12 @@ def get_dt_files(config, minyr, maxyr):
     """
     files = []
     dts = []
-    datadir = config.get('profiles', 'dir')
-    fpattern = config.get('profiles', 'fpattern')
+    if clim == False:
+        datadir = config.get('profiles', 'dir')
+        fpattern = config.get('profiles', 'fpattern')
+    else:
+        datadir = config.get('grid', 'dir')
+        fpattern = config.get('grid','fpattern')
     
     for yr in np.arange(minyr, maxyr + 1):
         for mon in np.arange(12) + 1:

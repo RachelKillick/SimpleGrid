@@ -184,29 +184,38 @@ class Profiles(object):
         index = np.where(self.psalqc == False)
         print('No. of rejected salinity values', np.shape(index))
         
+        # Restrict to profiles with good posqc:
+        self.data = self.data[self.posqc]        
+        self.x = self.x[self.posqc]
+        self.y = self.y[self.posqc]
+        self.p = self.p[self.posqc]
+        self.pn = self.pn[self.posqc]
+        self.ir = self.ir[self.posqc]
+        self.ps = self.ps[self.posqc]
+        self.z = self.z[self.posqc]
+        self.qc = self.qc[self.posqc]
+        self.posqc = self.posqc[self.posqc]
+        
         # Try thinning to only deep profiles first - THIS IS LIMITING THIS CODE
         # TO ONLY BE ABLE TO WORK OUT OHC FROM 0 TO A SPECIFIC DEPTH AND IT 
         # WOULD BE GOOD TO REMOVE THIS DEPENDENCY.
         # COULD I HAVE A VECTOR OF SOME DESCRIPTION SO IT USES THE PROFILES THAT 
         # GO DOWN TO THE RIGHT DEPTH, BUT THAT DEPTH CAN VARY?
-        posqcset = np.where(self.posqc != True)[0]
         self.OHCdep = float(self.OHCdep)
         deepset = np.unique(np.where(np.logical_and(np.logical_and(
           self.z.data >= self.OHCdep,self.z.mask == False), self.qc != False))[0])
-        # Get profiles that are deep and aren't bad:
-        combset = np.array(np.setdiff1d(deepset,posqcset))
         
         # Restrict to only profiles that are deeper than 700m:
-        self.data = self.data[combset]
-        self.x = self.x[combset]
-        self.y = self.y[combset]
-        self.p = self.p[combset]
-        self.pn = self.pn[combset]
-        self.ir = self.ir[combset]
-        self.ps = self.ps[combset]
-        self.z = self.z[combset]
-        self.qc = self.qc[combset]
-        self.posqc = self.posqc[combset]
+        self.data = self.data[deepset]
+        self.x = self.x[deepset]
+        self.y = self.y[deepset]
+        self.p = self.p[deepset]
+        self.pn = self.pn[deepset]
+        self.ir = self.ir[deepset]
+        self.ps = self.ps[deepset]
+        self.z = self.z[deepset]
+        self.qc = self.qc[deepset]
+        self.posqc = self.posqc[deepset]
         year = int(self.fname[-9:-5])
         
         # Filter out low quality XBTs:
@@ -214,7 +223,7 @@ class Profiles(object):
         for p in range(len(self.p)):
             xbt = inst_type.is_xbt(self.pn[p], self.ir[p], self.ps[p], fv, 
               self.z[p], fv)
-            if xbt[0][0] > 0:
+            if xbt[0][0] >= 0:
                 # Remove any XBTs sourced from WOD where the fall rate equation
                 # is unknown:
                 if xbt[3] == 9:
@@ -236,7 +245,7 @@ class Profiles(object):
                             nGTSPP999 += 1
                     if (xbt[4] == 0 and xbt[1] > 900):
                         rem.append(p)
-        
+                
         # Get rid of the low quality XBTs:
         nolowxbt = np.array(np.setdiff1d(range(len(self.p)),rem))
         self.data = self.data[nolowxbt]
@@ -249,6 +258,7 @@ class Profiles(object):
         self.z = self.z[nolowxbt]
         self.qc = self.qc[nolowxbt]
         self.posqc = self.posqc[nolowxbt]
+        print(np.shape(self.x))
         
         # Do the vertical averaging:
         self.p = np.array(range(len(self.p)))
@@ -370,11 +380,15 @@ class Profiles(object):
         # to populate multiple depth level grid boxes at once:
         points2 = np.vstack([self.z_1d[punique], self.y_1d[punique], 
           self.x_1d[punique]]).transpose()
+        #points2 = np.vstack([np.zeros(len(punique)), self.y_1d[punique], 
+        #  self.x_1d[punique]]).transpose()
         
         # points3 is like points 2, but gets coordinates for only profiles that
         # have a mean temperature down to the depth of interest:
         points3 = np.vstack([self.z_1d[puniqueqc], self.y_1d[puniqueqc], 
           self.x_1d[puniqueqc]]).transpose()
+        #points3 = np.vstack([np.zeros(len(puniqueqc)), self.y_1d[puniqueqc], 
+        #  self.x_1d[puniqueqc]]).transpose()
 
         # Pretty self explanatory - the boundaries of the grid boxes:
         bins = [self.zbounds, self.ybounds, self.xbounds]
@@ -394,7 +408,11 @@ class Profiles(object):
 #            points, self.data_1d, statistic = 'min', bins=bins)
 #        grid_med, binedges, binno = scipy.stats.binned_statistic_dd(
 #            points, all_mTqc1, statistic = 'median', bins = bins)
-       
+        
+        #print(grid_pcount[0][13][61])
+        #print(np.where(np.logical_and(self.y_1d[puniqueqc] > -64, self.y_1d[puniqueqc] < -62)))
+        #print(np.where(np.logical_and(self.x_1d[puniqueqc] > -154, self.x_1d[puniqueqc] < -152)))
+              
         # Sum of valid temps/ number of valid obs:
         grid_tmean = grid_sum / grid_count
         grid_tmean = np.ma.MaskedArray(grid_tmean, mask = (grid_count == 0))

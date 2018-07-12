@@ -13,7 +13,7 @@ from netCDF4 import Dataset
 class ShapeError(Exception):
     pass
 
-def get_dt_files(config, minyr, maxyr):
+def get_dt_files(config, minyr, maxyr, clim = False):
     """ 
     Return dates & filenames matching specified pattern between
     between minyr and maxyr 
@@ -21,8 +21,11 @@ def get_dt_files(config, minyr, maxyr):
     """
     files = []
     dts = []
-    datadir = config.get('profiles', 'dir')
-    fpattern = config.get('profiles', 'fpattern')
+    if clim == False:
+        datadir = config.get('profiles', 'dir')
+        fpattern = config.get('profiles', 'fpattern')
+    else:
+        datadir = config.get('')
     
     for yr in np.arange(minyr, maxyr + 1):
         for mon in np.arange(12) + 1:
@@ -53,7 +56,8 @@ def calc_anom(gridfile, dt, clim):
     anomnc = Dataset(anomfile, 'r+')
     griddat = gridnc.variables[clim.datavar]
     anomdat = anomnc.variables[clim.datavar]
-    anomdat[:] = griddat[:] - clim.grid_mean[dt.month - 1]
+    #anomdat[:] = griddat[:] - clim.grid_mean[dt.month - 1]
+    anomdat[:] = griddat[:] - clim.grid_pmean[dt.month - 1]
     
     # Close files
     gridnc.close()

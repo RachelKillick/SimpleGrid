@@ -45,6 +45,9 @@ def main():
     maxyr = config.getint('profiles', 'maxyr')
     gridfiles = []
     dts, fnames = tools.get_dt_files(config, minyr, maxyr)
+    #cminyr = config.getint('climatology', 'minyr')
+    #cmaxyr = config.geting('climatology', 'maxyr')
+    #cdts, cfnames = tools.get_dt_files(config, cminyr, cmaxyr)
     
     # Grid data
     for dt, fname in zip(dts, fnames):

@@ -10,7 +10,7 @@ from netCDF4 import Dataset
 
 
 # Load the profiles:
-fname = '/scratch/rkillick/BAMS/g10_profiles/EN.4.2.1.f.profiles.g10.195001.nc'
+fname = '/scratch/rkillick/BAMS/g10_profiles/EN.4.2.1.f.profiles.g10.199601.nc'
 year = int(fname[-9:-5])
 minyr = 1950
 maxyr = 1950
@@ -90,7 +90,7 @@ for p in range(len(pvar)):
     projname = ''.join(pnvar[p])
     instref = ''.join(irvar[p])
     xbt = inst_type.is_xbt(projname, instref, psvar[p,:], fv, zvar[p,:], fv)
-    if xbt[0][0] > 0:
+    if xbt[0][0] >= 0:
         # Remove any XBTs sourced from WOD where the fall rate equation is
         # unknown:
         if xbt[3] == 9:
