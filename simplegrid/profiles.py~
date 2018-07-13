@@ -378,20 +378,21 @@ class Profiles(object):
         # => This point will always (pretty much) be put into the top set of 
         # grid boxes, would therefore need to consider this further if I wanted
         # to populate multiple depth level grid boxes at once:
-        #points2 = np.vstack([self.z_1d[punique], self.y_1d[punique], 
-        #  self.x_1d[punique]]).transpose()
-        points2 = np.vstack([np.zeros(len(punique)), self.y_1d[punique], 
+        points2 = np.vstack([self.z_1d[punique], self.y_1d[punique], 
           self.x_1d[punique]]).transpose()
+        #points2 = np.vstack([np.zeros(len(punique)), self.y_1d[punique], 
+        #  self.x_1d[punique]]).transpose()
         
         # points3 is like points 2, but gets coordinates for only profiles that
         # have a mean temperature down to the depth of interest:
         #points3 = np.vstack([self.z_1d[puniqueqc], self.y_1d[puniqueqc], 
         #  self.x_1d[puniqueqc]]).transpose()
-        points3 = np.vstack([np.zeros(len(puniqueqc)), self.y_1d[puniqueqc], 
+        points3 = np.vstack([np.ones(len(puniqueqc)), self.y_1d[puniqueqc], 
           self.x_1d[puniqueqc]]).transpose()
 
         # Pretty self explanatory - the boundaries of the grid boxes:
         bins = [self.zbounds, self.ybounds, self.xbounds]
+        print(self.zbounds)
 
         # Grid data:
         grid_count, binedges, binno = scipy.stats.binned_statistic_dd(

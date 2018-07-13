@@ -265,8 +265,13 @@ class Profiles(object):
         self.maxgap = float(self.maxgap)
 
         # Loop over these profiles and do vertical averages:
+        # Storage vectors need to start off filled with fill values otherwise
+        # you get zero values being included in the averages instead of being
+        # discarded.
         all_mT = np.zeros(len(self.p))
+        all_mT.fill(fv)
         all_lT = np.zeros(len(self.p))
+        all_lT.fill(fv)
         for p in range(len(self.p)):
             # 1. Select the profile of interest:
             x_p = self.x[p]
@@ -385,13 +390,14 @@ class Profiles(object):
         
         # points3 is like points 2, but gets coordinates for only profiles that
         # have a mean temperature down to the depth of interest:
-        points3 = np.vstack([self.z_1d[puniqueqc], self.y_1d[puniqueqc], 
-          self.x_1d[puniqueqc]]).transpose()
-        #points3 = np.vstack([np.zeros(len(puniqueqc)), self.y_1d[puniqueqc], 
+        #points3 = np.vstack([self.z_1d[puniqueqc], self.y_1d[puniqueqc], 
         #  self.x_1d[puniqueqc]]).transpose()
+        points3 = np.vstack([np.ones(len(puniqueqc)), self.y_1d[puniqueqc], 
+          self.x_1d[puniqueqc]]).transpose()
 
         # Pretty self explanatory - the boundaries of the grid boxes:
         bins = [self.zbounds, self.ybounds, self.xbounds]
+        print(self.zbounds)
 
         # Grid data:
         grid_count, binedges, binno = scipy.stats.binned_statistic_dd(
