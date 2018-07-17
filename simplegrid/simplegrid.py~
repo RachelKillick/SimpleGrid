@@ -43,11 +43,12 @@ def main():
     clim = climatology.GridClim(config)
     minyr = config.getint('profiles', 'minyr')
     maxyr = config.getint('profiles', 'maxyr')
+    maxmonth = config.getint('profiles', 'maxmonth')
     gridfiles = []
-    dts, fnames = tools.get_dt_files(config, minyr, maxyr)
-    cminyr = config.getint('climatology', 'minyr')
-    cmaxyr = config.geting('climatology', 'maxyr')
-    cdts, cfnames = tools.get_dt_files(config, cminyr, cmaxyr)
+    dts, fnames = tools.get_dt_files(config, minyr, maxyr, maxmonth)
+    #cminyr = config.getint('climatology', 'minyr')
+    #cmaxyr = config.geting('climatology', 'maxyr')
+    #cdts, cfnames = tools.get_dt_files(config, cminyr, cmaxyr)
     
     # Grid data
     for dt, fname in zip(dts, fnames):
@@ -58,14 +59,16 @@ def main():
         clim.accumulate_profiles(prof)
      
     # Calculate monthly climatology
-    clim.calc_clim()
-    clim.write_clim()
+    print('Got up to here')
+    if config.getboolean('climatology', 'calc_climatology'):
+        clim.calc_clim()
+        clim.write_clim()
      
     # Calculate anomalies
     if config.getboolean('anomalies', 'calc_anomalies'):
         for dt, gridfile in zip(dts, gridfiles):
             tools.calc_anom(gridfile, dt, clim)
-        
+       
         # Move the anomalies to the anomaly folder:
         anomdir = config.get('anomalies','anomdir')
         profdir = config.get('grid','dir')

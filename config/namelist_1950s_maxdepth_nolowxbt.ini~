@@ -5,8 +5,9 @@ datavar = CONS_TEMP
 zvar = DEPH_CORRECTED
 yvar = LATITUDE
 xvar = LONGITUDE
-minyr = 1950
-maxyr = 1959
+minyr = 2018
+maxyr = 2018
+maxmonth = 7
 qcvar = POTM_CORRECTED_QC
 psalqcvar = PSAL_CORRECTED_QC
 posqcvar = POSITION_QC
@@ -23,9 +24,10 @@ juldvar = JULD
 [climatology]
 minyr=1950
 maxyr=1950
+cldir= /scratch/rkillick/BAMS/Simple_grid_profs/Python3/
 
 [grid]
-dir = /scratch/rkillick/BAMS/Simple_grid_profs/
+dir = /scratch/rkillick/BAMS/Simple_grid_profs/Python3/
 xmin=-180
 xmax=180
 ymin=-90
@@ -36,6 +38,6 @@ zbounds=0.0,700.0,2000.0,5500.0
 
 [anomalies]
 calc_anomalies = False
-
+anomdir = /scratch/rkillick/BAMS/Simple_grid_profs/Python3/Anomalies_full/
 
 

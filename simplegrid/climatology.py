@@ -46,7 +46,9 @@ class GridClim(object):
         """ Accumulate data from profiles that match date constraints """
         dt = profiles.dt
         mon, yr = dt.month, dt.year
-    
+        
+        # Here self.minyr and self.maxyr are taken from the climatology section 
+        # of the config file:
         if (yr >= self.minyr) & (yr <= self.maxyr):
             if not self.initialized:
                 self.init_grids(profiles)
@@ -58,6 +60,7 @@ class GridClim(object):
             self.grid_count[mon-1] += profiles.grid_count
             self.grid_sum[mon-1] += profiles.grid_sum
             self.grid_meant[mon-1][np.where(profiles.grid_meantmean.mask == False)] += profiles.grid_meantmean[np.where(profiles.grid_meantmean.mask == False)]
+            print(mon, yr) # This test doesn't seem to be getting printed at all...
 
     def calc_clim(self):
         """ Calculate monthly climatological means"""

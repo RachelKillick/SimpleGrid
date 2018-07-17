@@ -13,7 +13,7 @@ from netCDF4 import Dataset
 class ShapeError(Exception):
     pass
 
-def get_dt_files(config, minyr, maxyr, clim = False):
+def get_dt_files(config, minyr, maxyr, maxmonth, clim = False):
     """ 
     Return dates & filenames matching specified pattern between
     between minyr and maxyr 
@@ -25,9 +25,10 @@ def get_dt_files(config, minyr, maxyr, clim = False):
         datadir = config.get('profiles', 'dir')
         fpattern = config.get('profiles', 'fpattern')
     else:
-        datadir = config.get('')
+        datadir = config.get('grid', 'dir')
+        fpattern = config.get('grid','fpattern')
     
-    for yr in np.arange(minyr, maxyr + 1):
+    for yr in np.arange(minyr, maxyr):
         for mon in np.arange(12) + 1:
             f = datadir + fpattern.replace('${YYYY}', '%4i' % yr)
             f = f.replace('${MM}', '%02i' % mon)
@@ -39,6 +40,19 @@ def get_dt_files(config, minyr, maxyr, clim = False):
                 dt = datetime.datetime(yr, mon, 1)
                 files.append(f.replace('.f.','.p.'))
                 dts.append(dt)
+    
+    yr = maxyr
+    for mon in np.arange(maxmonth) + 1:
+        f = datadir + fpattern.replace('${YYYY}', '%4i' % yr)
+        f = f.replace('${MM}', '%02i' % mon)
+        if os.path.isfile(f):
+            dt = datetime.datetime(yr, mon, 1)
+            files.append(f)
+            dts.append(dt)
+        elif os.path.isfile(f.replace('.f.','.p.')):
+            dt = datetime.datetime(yr, mon, 1)
+            files.append(f.replace('.f.','.p.'))
+            dts.append(dt)
                 
     return dts, files
 
