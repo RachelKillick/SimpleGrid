@@ -10,7 +10,7 @@ from netCDF4 import Dataset
 
 
 # Load the profiles:
-fname = '/scratch/rkillick/BAMS/g10_profiles/EN.4.2.1.f.profiles.g10.199601.nc'
+fname = '/scratch/rkillick/BAMS/g10_profiles/EN.4.2.1.f.profiles.g10.200001.nc'
 year = int(fname[-9:-5])
 minyr = 1950
 maxyr = 1950

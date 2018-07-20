@@ -90,7 +90,7 @@ for p in range(len(pvar)):
     projname = ''.join(pnvar[p])
     instref = ''.join(irvar[p])
     xbt = inst_type.is_xbt(projname, instref, psvar[p,:], fv, zvar[p,:], fv)
-    if xbt[0][0] > 0:
+    if xbt[0][0] >= 0:
         # Remove any XBTs sourced from WOD where the fall rate equation is
         # unknown:
         if xbt[3] == 9:
