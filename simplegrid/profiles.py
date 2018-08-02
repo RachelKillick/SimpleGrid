@@ -215,10 +215,6 @@ class Profiles(object):
         # that deep then I won't be able to use them (this would be true even if
         # the first element of zbounds wasn't zero) - it also removes the need 
         # for an OHC dep value in my configuration file:
-        #deepset = np.unique(np.where(np.logical_and(np.logical_and(
-        #  self.z.data >= self.zbounds[1],self.z.mask == False), self.qc != False))[0])
-       
-        # Restrict to only profiles that are deeper than the target depth:
         self.data = self.data[maxdepth >= self.zbounds[1]]
         self.x = self.x[maxdepth >= self.zbounds[1]]
         self.y = self.y[maxdepth >= self.zbounds[1]]
@@ -291,12 +287,14 @@ class Profiles(object):
         all_y = np.zeros((len(self.p),np.shape(self.zbounds)[0]-1))
         all_y.fill(fv)
         for p in range(len(self.p)):
-            # 1. Select the profile of interest:
+            # 1. Select the profile of interest and make sure no tar_t1 values
+            # are carried over from a previous profile:
             x_p = self.x[p]
             y_p = self.y[p]
             qc_p = np.where(np.logical_and(self.qc[p] == True, self.z[p].mask == False))
             data_p = self.data[p][qc_p]
             z_p = self.z[p][qc_p].data
+            tar_t1 = fv
             # 1a. Sanity check to make sure there are no missing data going into
             # the averaging process:
             tempanddeppres = np.where(np.logical_and(data_p != fv, z_p != fv))[0]
@@ -319,14 +317,13 @@ class Profiles(object):
             # DEPTH - THIS IS STILL A SLIGHT SIMPLIFICATION:
             dval = 0
             for dep in self.zbounds[1:]:
-                maxgap = 0.3*(self.zbounds[dval+1] - self.zbounds[dval])
+                maxgap = max(0.3*(self.zbounds[dval+1]),100)
                 # Get only the levels of the profile in the depth range of 
                 # interest:
                 LTi1 = np.where(np.logical_and(z_p < dep, 
                   z_p >= self.zbounds[dval]))
                 GEi1 = np.where(z_p >= dep)
                 if (np.shape(LTi1)[1] != 0 and np.shape(GEi1)[1] != 0):
-                    #print('Maximum acceptable gap is', maxgap)
                     # Get the depth differences between layers and the mean temps across
                     # layers:
                     nk = np.shape(LTi1)[1] + 1
@@ -339,11 +336,18 @@ class Profiles(object):
                             dz[kk] = z_p[kk] - z_p[kk-1]
                             mt[kk] = 0.5 * (data_p[kk] + data_p[kk-1])
                     else:
-                        # Effectively missing the first layer as dz will always 
-                        # be zero there as you'll have calculated a temperature 
-                        # at that depth for tar_t1 on the previous loop.
-                        dz[0] = z_p[LTi1[0][0]] - self.zbounds[dval]
-                        mt[0] = 0.5 * (data_p[LTi1[0][0]] + tar_t1)
+                        # Effectively missing the first layer as dz will be zero
+                        # there if you've calculated a temperature at that depth
+                        # for tar_t1 on the previous loop, but it won't exist if
+                        # you haven't been able to calculate a tar_t1 value, so
+                        # then you'll have to do what you do when you're at the 
+                        # first depth level and aren't garunteed a value at 0m.
+                        if tar_t1 != fv:
+                            dz[0] = z_p[LTi1[0][0]] - self.zbounds[dval]
+                            mt[0] = 0.5 * (data_p[LTi1[0][0]] + tar_t1)
+                        else:
+                            dz[0] = z_p[LTi1[0][0]] - self.zbounds[dval]
+                            mt[0] = data_p[LTi1[0][0]]
                         for kk in range(0, nk-1):
                             dz[kk+1] = z_p[LTi1[0][kk]+1] - z_p[LTi1[0][kk]]
                             mt[kk+1] = 0.5 * (data_p[LTi1[0][kk]+1] + data_p[LTi1[0][kk]])
@@ -364,6 +368,7 @@ class Profiles(object):
                     if np.shape(test_gap)[1] != 0:
                         mean_t1 = fv
                         mean_t2 = fv
+                        tar_t1 = fv
                     else:
                         mean_t1 = sum(np.multiply(mt,dz))/(self.zbounds[dval+1] - self.zbounds[dval])
                     
@@ -377,6 +382,11 @@ class Profiles(object):
                     all_dep[p,dval] = dep # Lower bound of depth
                     all_x[p,dval] = x_p
                     all_y[p,dval] = y_p
+                else:
+                    tar_t1 = fv # Make sure that if you have no data in a 
+                    # specific depth range you don't carry an old tar_t1 value
+                    # over.
+                
                 dval +=1
 
         # Reshape
