@@ -1,0 +1,11 @@
+#!/bin/bash -l                       
+#SBATCH --qos=long                 
+#SBATCH --mem=10G                    
+#SBATCH --ntasks=2                  
+#SBATCH --output=/scratch/rkillick/BAMS_2019_700m_maxgap_200_output.txt   
+#SBATCH --error=/scratch/rkillick/BAMS_2019_700m_maxgap_200_error.txt
+#SBATCH --time=4280
+#SBATCH --mail-user=rachel.killick@metoffice.gov.uk
+#SBATCH --mail-type=ALL                  
+
+python run_simplegrid_fixedgap.py '/home/h02/rkillick/Data/fcm/SimpleGrid/config/namelist_multiple_depths_700_Python3_maxgap200.ini'

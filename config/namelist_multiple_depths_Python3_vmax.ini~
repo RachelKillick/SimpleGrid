@@ -5,11 +5,11 @@ datavar = CONS_TEMP
 zvar = DEPH_CORRECTED
 yvar = LATITUDE
 xvar = LONGITUDE
-minyr = 1950
-maxyr = 2017
-monthly_update = False
+minyr = 2018
+maxyr = 2018
+monthly_update = True
 minmonth = 1
-maxmonth = 12
+maxmonth = 7
 qcvar = POTM_CORRECTED_QC
 psalqcvar = PSAL_CORRECTED_QC
 posqcvar = POSITION_QC
@@ -22,7 +22,7 @@ psvar = PSAL_CORRECTED
 juldvar = JULD
 
 [climatology]
-calc_climatology = True
+calc_climatology = False
 minyr=1950
 maxyr=2017
 cldir= /scratch/rkillick/BAMS/Simple_grid_profs/Python3/Climatologies_vmax/

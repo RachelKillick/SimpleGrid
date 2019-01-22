@@ -55,7 +55,7 @@ def main():
     
     # Grid data
     for dt, fname in zip(dts, fnames):
-        prof = profiles.Profiles(config, fname, dt)
+        prof = profiles_fixedgap.Profiles(config, fname, dt)
         prof.grid_data()
         prof.write_grid()
         gridfiles.append(prof.fout)

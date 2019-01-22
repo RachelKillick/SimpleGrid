@@ -50,7 +50,7 @@ def main():
     dts, fnames = tools.get_dt_files(config, minyr, maxyr, minmonth, maxmonth,
       mupdate)
     #cminyr = config.getint('climatology', 'minyr')
-    #cmaxyr = config.geting('climatology', 'maxyr')
+    #cmaxyr = config.getint('climatology', 'maxyr')
     #cdts, cfnames = tools.get_dt_files(config, cminyr, cmaxyr)
     
     # Grid data

@@ -215,16 +215,16 @@ class Profiles(object):
         # that deep then I won't be able to use them (this would be true even if
         # the first element of zbounds wasn't zero) - it also removes the need 
         # for an OHC dep value in my configuration file:
-        self.data = self.data[maxdepth >= 700]
-        self.x = self.x[maxdepth >= 700]
-        self.y = self.y[maxdepth >= 700]
-        self.p = self.p[maxdepth >= 700]
-        self.pn = self.pn[maxdepth >= 700]
-        self.ir = self.ir[maxdepth >= 700]
-        self.ps = self.ps[maxdepth >= 700]
-        self.z = self.z[maxdepth >= 700]
-        self.qc = self.qc[maxdepth >= 700]
-        self.posqc = self.posqc[maxdepth >= 700]
+        self.data = self.data[maxdepth >= self.zbounds[1]]
+        self.x = self.x[maxdepth >= self.zbounds[1]]
+        self.y = self.y[maxdepth >= self.zbounds[1]]
+        self.p = self.p[maxdepth >= self.zbounds[1]]
+        self.pn = self.pn[maxdepth >= self.zbounds[1]]
+        self.ir = self.ir[maxdepth >= self.zbounds[1]]
+        self.ps = self.ps[maxdepth >= self.zbounds[1]]
+        self.z = self.z[maxdepth >= self.zbounds[1]]
+        self.qc = self.qc[maxdepth >= self.zbounds[1]]
+        self.posqc = self.posqc[maxdepth >= self.zbounds[1]]
         year = int(self.fname[-9:-5])
         
         # Filter out low quality XBTs:
@@ -317,7 +317,7 @@ class Profiles(object):
             # DEPTH - THIS IS STILL A SLIGHT SIMPLIFICATION:
             dval = 0
             for dep in self.zbounds[1:]:
-                maxgap = 210
+                maxgap = 200
                 # Get only the levels of the profile in the depth range of 
                 # interest:
                 LTi1 = np.where(np.logical_and(z_p < dep, 

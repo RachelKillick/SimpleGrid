@@ -215,16 +215,18 @@ class Profiles(object):
         # that deep then I won't be able to use them (this would be true even if
         # the first element of zbounds wasn't zero) - it also removes the need 
         # for an OHC dep value in my configuration file:
-        self.data = self.data[maxdepth >= self.zbounds[1]]
-        self.x = self.x[maxdepth >= self.zbounds[1]]
-        self.y = self.y[maxdepth >= self.zbounds[1]]
-        self.p = self.p[maxdepth >= self.zbounds[1]]
-        self.pn = self.pn[maxdepth >= self.zbounds[1]]
-        self.ir = self.ir[maxdepth >= self.zbounds[1]]
-        self.ps = self.ps[maxdepth >= self.zbounds[1]]
-        self.z = self.z[maxdepth >= self.zbounds[1]]
-        self.qc = self.qc[maxdepth >= self.zbounds[1]]
-        self.posqc = self.posqc[maxdepth >= self.zbounds[1]]
+        # In this _depth_lenience version, allow a 1% tolerance, i.e for my 
+        # 0 - 2000m level, I will now accept profiles going down to 1980m.
+        self.data = self.data[maxdepth >= self.zbounds[1] * 0.99]
+        self.x = self.x[maxdepth >= self.zbounds[1] * 0.99]
+        self.y = self.y[maxdepth >= self.zbounds[1] * 0.99]
+        self.p = self.p[maxdepth >= self.zbounds[1] * 0.99]
+        self.pn = self.pn[maxdepth >= self.zbounds[1] * 0.99]
+        self.ir = self.ir[maxdepth >= self.zbounds[1] * 0.99]
+        self.ps = self.ps[maxdepth >= self.zbounds[1] * 0.99]
+        self.z = self.z[maxdepth >= self.zbounds[1] * 0.99]
+        self.qc = self.qc[maxdepth >= self.zbounds[1] * 0.99]
+        self.posqc = self.posqc[maxdepth >= self.zbounds[1] * 0.99]
         year = int(self.fname[-9:-5])
         
         # Filter out low quality XBTs:
@@ -317,15 +319,22 @@ class Profiles(object):
             # DEPTH - THIS IS STILL A SLIGHT SIMPLIFICATION:
             dval = 0
             for dep in self.zbounds[1:]:
-                maxgap = 210
+                # Have added in this switch to allow you to specify whether
+                # you're using a fixed gap or not:
+                if config.get('profiles', 'fixedgap') == True:
+                    maxgap = 200
+                else:
+                    maxgap = max(0.3*(self.zbounds[dval+1]),100)
                 # Get only the levels of the profile in the depth range of 
                 # interest:
                 LTi1 = np.where(np.logical_and(z_p < dep, 
                   z_p >= self.zbounds[dval]))
                 GEi1 = np.where(z_p >= dep)
+                # Need to add a tolerance in here so the profiles that don't go
+                # quite to the depth of interest aren't lost:
                 if (np.shape(LTi1)[1] != 0 and np.shape(GEi1)[1] != 0):
-                    # Get the depth differences between layers and the mean temps across
-                    # layers:
+                    # Get the depth differences between layers and the mean 
+                    # temps across layers:
                     nk = np.shape(LTi1)[1] + 1
                     dz = np.zeros(nk)
                     mt = np.zeros(nk)
@@ -382,6 +391,64 @@ class Profiles(object):
                     all_dep[p,dval] = dep # Lower bound of depth
                     all_x[p,dval] = x_p
                     all_y[p,dval] = y_p
+                # This is the case where the profile ALMOST, but doesn't quite 
+                # goes down to the depth of interest:
+                elif (np.shape(LTi1)[1] != 0 and LTi1[-1] >= dep * 0.99):
+                    # Get the depth differences between layers and the mean 
+                    # temps across layers:
+                    nk = np.shape(LTi1)[1]
+                    dz = np.zeros(nk)
+                    mt = np.zeros(nk)
+                    if dval == 0:
+                        dz[0] = z_p[0]
+                        mt[0] = data_p[0]
+                        for kk in range(1, nk):
+                            dz[kk] = z_p[kk] - z_p[kk-1]
+                            mt[kk] = 0.5 * (data_p[kk] + data_p[kk-1])
+                    else:
+                        # Effectively missing the first layer as dz will be zero
+                        # there if you've calculated a temperature at that depth
+                        # for tar_t1 on the previous loop, but it won't exist if
+                        # you haven't been able to calculate a tar_t1 value, so
+                        # then you'll have to do what you do when you're at the 
+                        # first depth level and aren't garunteed a value at 0m.
+                        if tar_t1 != fv:
+                            dz[0] = z_p[LTi1[0][0]] - self.zbounds[dval]
+                            mt[0] = 0.5 * (data_p[LTi1[0][0]] + tar_t1)
+                        else:
+                            dz[0] = z_p[LTi1[0][0]] - self.zbounds[dval]
+                            mt[0] = data_p[LTi1[0][0]]
+                        for kk in range(0, nk-1):
+                            dz[kk+1] = z_p[LTi1[0][kk]+1] - z_p[LTi1[0][kk]]
+                            mt[kk+1] = 0.5 * (data_p[LTi1[0][kk]+1] + data_p[LTi1[0][kk]])
+                    
+                    # Work out the temp at the target depth - in this instance
+                    # the options are either to extrapolate (a bit risky) or use
+                    # the value that is nearly at the target depth as if it was 
+                    # at the target depth, a simplification, but therefore much
+                    # easier:
+                    tar_t1 = LTi1[-1]
+                    
+                    # Check if there are unacceptable gaps between layers:
+                    test_gap = np.where(dz > maxgap)
+                    if np.shape(test_gap)[1] != 0:
+                        mean_t1 = fv
+                        mean_t2 = fv
+                        tar_t1 = fv
+                    else:
+                        mean_t1 = sum(np.multiply(mt,dz))/(self.zbounds[dval+1] - self.zbounds[dval])
+                    
+                    # Make sure there are no crazy mean values:
+                    if (abs(mean_t1) > 100 and mean_t1 != fv):
+                        raise ValueError('Extreme values found')
+                    # Save the mean temperature at that depth and the temp at the target 
+                    # depth, also save the depth and profile number:
+                    all_mT[p,dval] = mean_t1
+                    all_lT[p,dval] = tar_t1
+                    all_dep[p,dval] = dep # Lower bound of depth
+                    all_x[p,dval] = x_p
+                    all_y[p,dval] = y_p
+                    
                 else:
                     tar_t1 = fv # Make sure that if you have no data in a 
                     # specific depth range you don't carry an old tar_t1 value
